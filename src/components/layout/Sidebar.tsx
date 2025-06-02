@@ -19,21 +19,33 @@ interface SidebarProps {
   isOpen: boolean;
   activeTab: string;
   onTabChange: (tab: string) => void;
+  userRole?: 'admin' | 'employer';
 }
 
 const menuItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: Home, badge: null },
-  { id: 'medicines', label: 'Medicines', icon: Package, badge: null },
-  { id: 'stores', label: 'Medical Stores', icon: Building2, badge: null },
-  { id: 'supplies', label: 'Supply Records', icon: Truck, badge: null },
-  { id: 'analytics', label: 'Analytics', icon: BarChart3, badge: null },
-  { id: 'reports', label: 'Reports', icon: FileText, badge: 'New' },
-  { id: 'alerts', label: 'Alerts', icon: AlertTriangle, badge: '3' },
-  { id: 'users', label: 'Users', icon: Users, badge: null },
-  { id: 'settings', label: 'Settings', icon: Settings, badge: null },
+  { id: 'dashboard', label: 'Dashboard', icon: Home, badge: null, requiredRole: null },
+  { id: 'medicines', label: 'Medicines', icon: Package, badge: null, requiredRole: 'employer' },
+  { id: 'stores', label: 'Medical Stores', icon: Building2, badge: null, requiredRole: 'employer' },
+  { id: 'supplies', label: 'Supply Records', icon: Truck, badge: null, requiredRole: 'employer' },
+  { id: 'analytics', label: 'Analytics', icon: BarChart3, badge: null, requiredRole: 'admin' },
+  { id: 'reports', label: 'Reports', icon: FileText, badge: 'New', requiredRole: 'admin' },
+  { id: 'alerts', label: 'Alerts', icon: AlertTriangle, badge: '3', requiredRole: null },
+  { id: 'users', label: 'Users', icon: Users, badge: null, requiredRole: 'admin' },
+  { id: 'settings', label: 'Settings', icon: Settings, badge: null, requiredRole: null },
 ];
 
-const Sidebar: React.FC<SidebarProps> = ({ isOpen, activeTab, onTabChange }) => {
+const Sidebar: React.FC<SidebarProps> = ({ isOpen, activeTab, onTabChange, userRole }) => {
+  // Filter menu items based on user role
+  const getVisibleMenuItems = () => {
+    return menuItems.filter(item => {
+      if (!item.requiredRole) return true; // No role requirement
+      if (userRole === 'admin') return true; // Admin can see everything
+      return item.requiredRole === userRole; // Match exact role requirement
+    });
+  };
+
+  const visibleItems = getVisibleMenuItems();
+
   return (
     <>
       {/* Mobile overlay */}
@@ -48,7 +60,15 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, activeTab, onTabChange }) => 
         isOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         <div className="p-4 space-y-2">
-          {menuItems.map((item) => {
+          {/* Role indicator */}
+          {userRole && (
+            <div className="mb-4 p-2 bg-gray-50 rounded-lg">
+              <span className="text-xs text-gray-500">Logged in as:</span>
+              <div className="font-medium text-sm capitalize">{userRole}</div>
+            </div>
+          )}
+          
+          {visibleItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
             

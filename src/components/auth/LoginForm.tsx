@@ -8,7 +8,11 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from '@/contexts/AuthContext';
 import { Lock, Mail, Eye, EyeOff } from 'lucide-react';
 
-const LoginForm = () => {
+interface LoginFormProps {
+  onSwitchToSignup: () => void;
+}
+
+const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToSignup }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -103,8 +107,19 @@ const LoginForm = () => {
               {isLoading ? 'Signing In...' : 'Sign In'}
             </Button>
 
-            <div className="text-center text-sm text-gray-600 mt-4">
-              Demo credentials: admin@pharma.com / admin123
+            <div className="text-center space-y-2">
+              <div className="text-sm text-gray-600">
+                Demo accounts:<br />
+                Admin: admin@pharma.com / admin123<br />
+                Employer: employer@pharma.com / employer123
+              </div>
+              <button
+                type="button"
+                onClick={onSwitchToSignup}
+                className="text-sm text-green-600 hover:text-green-700"
+              >
+                Don't have an account? Sign up
+              </button>
             </div>
           </form>
         </CardContent>

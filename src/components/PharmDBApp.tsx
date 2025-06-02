@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import LoginForm from '@/components/auth/LoginForm';
+import AuthContainer from '@/components/auth/AuthContainer';
 import Navbar from '@/components/layout/Navbar';
 import Sidebar from '@/components/layout/Sidebar';
 import Dashboard from '@/components/Dashboard';
@@ -9,9 +9,11 @@ import MedicineManagement from '@/components/MedicineManagement';
 import StoreManagement from '@/components/StoreManagement';
 import SupplyManagement from '@/components/SupplyManagement';
 import AnalyticsDashboard from '@/components/analytics/AnalyticsDashboard';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertTriangle } from 'lucide-react';
 
 const PharmDBApp = () => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user, hasAccess } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
 
@@ -24,22 +26,39 @@ const PharmDBApp = () => {
   }
 
   if (!isAuthenticated) {
-    return <LoginForm />;
+    return <AuthContainer />;
   }
 
-  const renderContent = () => {
+  // Role-based access control for different sections
+  const getAccessibleContent = () => {
+    // Check if user has access to the current tab
     switch (activeTab) {
       case 'dashboard':
         return <Dashboard />;
       case 'medicines':
+        if (!hasAccess('employer')) {
+          return <AccessDenied requiredRole="Employer or Admin" />;
+        }
         return <MedicineManagement />;
       case 'stores':
+        if (!hasAccess('employer')) {
+          return <AccessDenied requiredRole="Employer or Admin" />;
+        }
         return <StoreManagement />;
       case 'supplies':
+        if (!hasAccess('employer')) {
+          return <AccessDenied requiredRole="Employer or Admin" />;
+        }
         return <SupplyManagement />;
       case 'analytics':
+        if (!hasAccess('admin')) {
+          return <AccessDenied requiredRole="Admin" />;
+        }
         return <AnalyticsDashboard />;
       case 'reports':
+        if (!hasAccess('admin')) {
+          return <AccessDenied requiredRole="Admin" />;
+        }
         return (
           <div className="p-8 text-center">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">Reports</h2>
@@ -54,6 +73,9 @@ const PharmDBApp = () => {
           </div>
         );
       case 'users':
+        if (!hasAccess('admin')) {
+          return <AccessDenied requiredRole="Admin" />;
+        }
         return (
           <div className="p-8 text-center">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">User Management</h2>
@@ -81,17 +103,31 @@ const PharmDBApp = () => {
           setActiveTab(tab);
           setSidebarOpen(false); // Close sidebar on mobile after selection
         }}
+        userRole={user?.role}
       />
       
       <div className="flex-1 flex flex-col lg:ml-64">
         <Navbar onMenuToggle={() => setSidebarOpen(!sidebarOpen)} />
         
         <main className="flex-1 p-6">
-          {renderContent()}
+          {getAccessibleContent()}
         </main>
       </div>
     </div>
   );
 };
+
+// Component to show when user doesn't have access
+const AccessDenied: React.FC<{ requiredRole: string }> = ({ requiredRole }) => (
+  <div className="p-8 text-center">
+    <Alert className="max-w-md mx-auto">
+      <AlertTriangle className="h-4 w-4" />
+      <AlertDescription>
+        <strong>Access Denied</strong><br />
+        This section requires {requiredRole} privileges.
+      </AlertDescription>
+    </Alert>
+  </div>
+);
 
 export default PharmDBApp;
