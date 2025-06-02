@@ -1,0 +1,63 @@
+
+// Prisma Schema for Pharmaceutical Company Database
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Medicine {
+  id                  Int      @id @default(autoincrement())
+  name                String   @db.VarChar(255)
+  company             String   @db.VarChar(255)
+  date_of_manufacture DateTime @db.Date
+  date_of_expiry      DateTime @db.Date
+  price               Decimal  @db.Decimal(10, 2)
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
+
+  // Relations
+  supplies Supply[]
+
+  @@map("medicines")
+  @@index([name])
+  @@index([company])
+  @@index([date_of_expiry])
+}
+
+model MedicalStore {
+  store_id   Int    @id @default(autoincrement())
+  store_name String @db.VarChar(255)
+  location   String @db.Text
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  // Relations
+  supplies Supply[]
+
+  @@map("medical_stores")
+  @@index([store_name])
+  @@index([location])
+}
+
+model Supply {
+  supply_id   Int      @id @default(autoincrement())
+  medicine_id Int
+  store_id    Int
+  quantity    Int
+  supply_date DateTime @db.Date
+  created_at  DateTime @default(now())
+
+  // Relations
+  medicine Medicine     @relation(fields: [medicine_id], references: [id], onDelete: Cascade)
+  store    MedicalStore @relation(fields: [store_id], references: [store_id], onDelete: Cascade)
+
+  @@map("supplies")
+  @@index([medicine_id])
+  @@index([store_id])
+  @@index([supply_date])
+  @@unique([medicine_id, store_id, supply_date])
+}
