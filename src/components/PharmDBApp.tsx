@@ -92,24 +92,21 @@ const PharmDBApp = () => {
       default:
         return <Dashboard />;
     }
-  };
-
-  return (
-    <div className="min-h-screen bg-gray-50 flex">
-      <Sidebar 
-        isOpen={sidebarOpen}
-        activeTab={activeTab}
-        onTabChange={(tab) => {
-          setActiveTab(tab);
-          setSidebarOpen(false); // Close sidebar on mobile after selection
-        }}
-        userRole={user?.role}
-      />
+  };  return (
+    <div className="min-h-screen bg-gray-50">
+      <Navbar onMenuToggle={() => setSidebarOpen(!sidebarOpen)} />
       
-      <div className="flex-1 flex flex-col lg:ml-64">
-        <Navbar onMenuToggle={() => setSidebarOpen(!sidebarOpen)} />
-        
-        <main className="flex-1 p-6">
+      <div className="flex">
+        <Sidebar 
+          isOpen={sidebarOpen}
+          activeTab={activeTab}
+          onTabChange={(tab) => {
+            setActiveTab(tab);
+            setSidebarOpen(false); // Close sidebar on mobile after selection
+          }}
+          userRole={user?.role}
+        />
+          <main className="flex-1 p-6">
           {getAccessibleContent()}
         </main>
       </div>

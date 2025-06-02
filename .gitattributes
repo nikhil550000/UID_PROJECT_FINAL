@@ -1,0 +1,16 @@
+# Enforce LF line endings in repo
+* text=auto eol=lf
+
+# Handle JS/TS text
+*.js text
+*.jsx text
+*.ts text
+*.tsx text
+
+# Prevent CRLF conversion for binary files
+dist/** -text
+node_modules/** -text
+
+# Auto detect and normalize other text files
+environment files
+*.env text

@@ -12,6 +12,24 @@ dist
 dist-ssr
 *.local
 
+# Environment files
+.env
+.env.*.local
+backend/.env
+backend/.env.*.local
+
+# Lock files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Vite cache
+node_modules/.vite/
+
+# Public build assets
+dist/
+public/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

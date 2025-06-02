@@ -20,9 +20,8 @@ interface NavbarProps {
 const Navbar: React.FC<NavbarProps> = ({ onMenuToggle }) => {
   const { user, logout } = useAuth();
   const [notifications] = useState(3); // Mock notification count
-
   return (
-    <nav className="bg-white/90 backdrop-blur-sm border-b border-gray-200 px-4 py-3 sticky top-0 z-50">
+    <nav className="bg-white/90 backdrop-blur-sm border-b border-gray-200 px-4 py-3 sticky top-0 z-50 w-full">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <Button

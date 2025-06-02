@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,28 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Calendar, Package, Truck } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
-
-interface Supply {
-  id: number;
-  medicine_id: number;
-  medicine_name: string;
-  store_id: number;
-  store_name: string;
-  quantity: number;
-  supply_date: string;
-}
-
-interface Medicine {
-  id: number;
-  medicine_name: string;
-  company_name: string;
-}
-
-interface MedicalStore {
-  store_id: number;
-  store_name: string;
-  location: string;
-}
+import { supplyApi, medicineApi, storeApi, Supply, Medicine, MedicalStore, CreateSupplyInput } from '../services/api';
 
 const SupplyManagement = () => {
   const [supplies, setSupplies] = useState<Supply[]>([]);

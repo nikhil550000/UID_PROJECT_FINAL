@@ -51,11 +51,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, activeTab, onTabChange, userR
       {/* Mobile overlay */}
       {isOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden" />
-      )}
-      
-      {/* Sidebar */}
+      )}      {/* Sidebar */}
       <aside className={cn(
-        "fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 bg-white border-r border-gray-200 transform transition-transform duration-300 ease-in-out z-50",
+        "fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 bg-white border-r border-gray-200 transform transition-transform duration-300 ease-in-out z-40",
         "lg:relative lg:top-0 lg:h-full lg:translate-x-0",
         isOpen ? "translate-x-0" : "-translate-x-full"
       )}>

@@ -1,21 +1,16 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Edit3, Trash2, Database, MapPin } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
-
-interface MedicalStore {
-  store_id: number;
-  store_name: string;
-  location: string;
-}
+import { storeApi, MedicalStore, CreateStoreInput } from '../services/api';
 
 const StoreManagement = () => {
   const [stores, setStores] = useState<MedicalStore[]>([]);
-  const [newStore, setNewStore] = useState({
+  const [newStore, setNewStore] = useState<CreateStoreInput>({
     store_name: '',
     location: ''
   });
@@ -23,52 +18,128 @@ const StoreManagement = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  // Mock data
-  const mockStores: MedicalStore[] = [
-    { store_id: 1, store_name: "City Pharmacy", location: "Downtown, Main Street" },
-    { store_id: 2, store_name: "Health Plus Medical", location: "Uptown, 5th Avenue" },
-    { store_id: 3, store_name: "Metro Medical Store", location: "Suburbs, Oak Road" },
-    { store_id: 4, store_name: "Care Point Pharmacy", location: "Central, Park Lane" },
-  ];
+  // Load stores from API
+  const loadStores = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const response = await storeApi.getAll();
+      if (response.success && response.data) {
+        setStores(response.data);
+      } else {
+        toast({ 
+          title: "Error loading stores", 
+          description: response.error || "Failed to load stores",
+          variant: "destructive" 
+        });
+      }
+    } catch (error) {
+      console.error('Error loading stores:', error);
+      toast({ 
+        title: "Error loading stores", 
+        description: "Failed to connect to server",
+        variant: "destructive" 
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [toast]);
 
   useEffect(() => {
-    setIsLoading(true);
-    setTimeout(() => {
-      setStores(mockStores);
-      setIsLoading(false);
-    }, 500);
-  }, []);
-
-  const handleCreateStore = () => {
+    loadStores();
+  }, [loadStores]);
+  const handleCreateStore = async () => {
     if (!newStore.store_name.trim() || !newStore.location.trim()) {
       toast({ title: "Please fill all required fields", variant: "destructive" });
       return;
     }
 
-    const store: MedicalStore = {
-      store_id: Date.now(),
-      ...newStore
-    };
-
-    setStores([...stores, store]);
-    setNewStore({
-      store_name: '',
-      location: ''
-    });
-    toast({ title: "Medical store added successfully!" });
+    try {
+      setIsLoading(true);
+      const response = await storeApi.create(newStore);
+      if (response.success && response.data) {
+        setStores([...stores, response.data]);
+        setNewStore({
+          store_name: '',
+          location: ''
+        });
+        toast({ title: "Medical store added successfully!" });
+      } else {
+        toast({ 
+          title: "Error creating store", 
+          description: response.error || "Failed to create store",
+          variant: "destructive" 
+        });
+      }
+    } catch (error) {
+      console.error('Error creating store:', error);
+      toast({ 
+        title: "Error creating store", 
+        description: "Failed to connect to server",
+        variant: "destructive" 
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleUpdateStore = (store_id: number, updates: Partial<MedicalStore>) => {
-    setStores(stores.map(store => 
-      store.store_id === store_id ? { ...store, ...updates } : store
-    ));
-    setEditingStore(null);
-    toast({ title: "Store updated successfully!" });
+  const handleUpdateStore = async (store_id: number, updates: Partial<MedicalStore>) => {
+    try {
+      setIsLoading(true);
+      const updateData = {
+        store_name: updates.store_name,
+        location: updates.location
+      };
+      
+      const response = await storeApi.update(store_id, updateData);
+      if (response.success && response.data) {
+        setStores(stores.map(store => 
+          store.store_id === store_id ? response.data! : store
+        ));
+        setEditingStore(null);
+        toast({ title: "Store updated successfully!" });
+      } else {
+        toast({ 
+          title: "Error updating store", 
+          description: response.error || "Failed to update store",
+          variant: "destructive" 
+        });
+      }
+    } catch (error) {
+      console.error('Error updating store:', error);
+      toast({ 
+        title: "Error updating store", 
+        description: "Failed to connect to server",
+        variant: "destructive" 
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleDeleteStore = (store_id: number) => {
-    setStores(stores.filter(store => store.store_id !== store_id));
-    toast({ title: "Store deleted successfully!" });
+  const handleDeleteStore = async (store_id: number) => {
+    try {
+      setIsLoading(true);
+      const response = await storeApi.delete(store_id);
+      if (response.success) {
+        setStores(stores.filter(store => store.store_id !== store_id));
+        toast({ title: "Store deleted successfully!" });
+      } else {
+        toast({ 
+          title: "Error deleting store", 
+          description: response.error || "Failed to delete store",
+          variant: "destructive" 
+        });
+      }
+    } catch (error) {
+      console.error('Error deleting store:', error);
+      toast({ 
+        title: "Error deleting store", 
+        description: "Failed to connect to server",
+        variant: "destructive" 
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

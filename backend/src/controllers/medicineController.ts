@@ -46,15 +46,13 @@ export const getMedicineById = async (req: Request, res: Response) => {
         error: 'Medicine not found'
       };
       return res.status(404).json(response);
-    }
-
-    const response: ApiResponse = {
+    }    const response: ApiResponse = {
       success: true,
       data: medicine,
       message: 'Medicine retrieved successfully'
     };
 
-    res.json(response);
+    return res.json(response);
   } catch (error) {
     console.error('Error fetching medicine:', error);
     const response: ApiResponse = {
@@ -108,15 +106,13 @@ export const updateMedicine = async (req: Request, res: Response) => {
     const medicine = await prisma.medicine.update({
       where: { id: parseInt(id) },
       data: processedData
-    });
-
-    const response: ApiResponse = {
+    });    const response: ApiResponse = {
       success: true,
       data: medicine,
       message: 'Medicine updated successfully'
     };
 
-    res.json(response);
+    return res.json(response);
   } catch (error: any) {
     console.error('Error updating medicine:', error);
     if (error.code === 'P2025') {
@@ -140,14 +136,12 @@ export const deleteMedicine = async (req: Request, res: Response) => {
 
     await prisma.medicine.delete({
       where: { id: parseInt(id) }
-    });
-
-    const response: ApiResponse = {
+    });    const response: ApiResponse = {
       success: true,
       message: 'Medicine deleted successfully'
     };
 
-    res.json(response);
+    return res.json(response);
   } catch (error: any) {
     console.error('Error deleting medicine:', error);
     if (error.code === 'P2025') {
