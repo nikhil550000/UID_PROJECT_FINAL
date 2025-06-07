@@ -53,3 +53,18 @@ model Supply {
   @@index([supply_date])
   @@map("supplies")
 }
+
+model User {
+  id         Int      @id @default(autoincrement())
+  name       String   @db.VarChar(255)
+  email      String   @unique @db.VarChar(255)
+  password   String   @db.VarChar(255)
+  role       String   @db.VarChar(50) @default("employer")
+  is_active  Boolean  @default(true)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@index([email])
+  @@index([role])
+  @@map("users")
+}

@@ -1,7 +1,7 @@
 // API service for pharmaceutical management system
 const API_BASE_URL = 'http://localhost:5001/api';
 
-interface ApiResponse<T = any> {
+interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   message?: string;
@@ -60,6 +60,32 @@ interface CreateSupplyInput {
   store_id: number;
   quantity: number;
   supply_date: string;
+}
+
+// User interfaces
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+interface CreateUserInput {
+  name: string;
+  email: string;
+  password: string;
+  role?: string;
+}
+
+interface UpdateUserInput {
+  name?: string;
+  email?: string;
+  password?: string;
+  role?: string;
+  is_active?: boolean;
 }
 
 // Generic API request function
@@ -156,10 +182,38 @@ export const supplyApi = {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
-  
-  delete: (id: number) =>
+    delete: (id: number) =>
     apiRequest(`/supplies/${id}`, {
       method: 'DELETE',
+    }),
+};
+
+// User API functions
+export const userApi = {
+  getAll: () => apiRequest<User[]>('/users'),
+  
+  getById: (id: number) => apiRequest<User>(`/users/${id}`),
+  
+  create: (data: CreateUserInput) =>
+    apiRequest<User>('/users', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  
+  update: (id: number, data: UpdateUserInput) =>
+    apiRequest<User>(`/users/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  
+  delete: (id: number) =>
+    apiRequest(`/users/${id}`, {
+      method: 'DELETE',
+    }),
+  
+  toggleStatus: (id: number) =>
+    apiRequest<User>(`/users/${id}/toggle-status`, {
+      method: 'PATCH',
     }),
 };
 
@@ -171,5 +225,8 @@ export type {
   CreateStoreInput,
   Supply,
   CreateSupplyInput,
+  User,
+  CreateUserInput,
+  UpdateUserInput,
   ApiResponse,
 };

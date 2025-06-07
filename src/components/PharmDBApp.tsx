@@ -9,6 +9,10 @@ import MedicineManagement from '@/components/MedicineManagement';
 import StoreManagement from '@/components/StoreManagement';
 import SupplyManagement from '@/components/SupplyManagement';
 import AnalyticsDashboard from '@/components/analytics/AnalyticsDashboard';
+import ReportsManagement from '@/components/ReportsManagement';
+import AlertsManagement from '@/components/AlertsManagement';
+import UserManagement from '@/components/UserManagement';
+import SettingsManagement from '@/components/SettingsManagement';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 
@@ -54,41 +58,23 @@ const PharmDBApp = () => {
         if (!hasAccess('admin')) {
           return <AccessDenied requiredRole="Admin" />;
         }
-        return <AnalyticsDashboard />;
-      case 'reports':
+        return <AnalyticsDashboard />;      case 'reports':
         if (!hasAccess('admin')) {
           return <AccessDenied requiredRole="Admin" />;
         }
-        return (
-          <div className="p-8 text-center">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Reports</h2>
-            <p className="text-gray-600">Report generation features coming soon...</p>
-          </div>
-        );
-      case 'alerts':
-        return (
-          <div className="p-8 text-center">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Alerts & Notifications</h2>
-            <p className="text-gray-600">Alert management features coming soon...</p>
-          </div>
-        );
-      case 'users':
+        return <ReportsManagement />;      case 'alerts':
+        if (!hasAccess('employer')) {
+          return <AccessDenied requiredRole="Employer or Admin" />;
+        }
+        return <AlertsManagement />;      case 'users':
         if (!hasAccess('admin')) {
           return <AccessDenied requiredRole="Admin" />;
         }
-        return (
-          <div className="p-8 text-center">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">User Management</h2>
-            <p className="text-gray-600">User management features coming soon...</p>
-          </div>
-        );
-      case 'settings':
-        return (
-          <div className="p-8 text-center">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Settings</h2>
-            <p className="text-gray-600">Settings panel coming soon...</p>
-          </div>
-        );
+        return <UserManagement />;      case 'settings':
+        if (!hasAccess('admin')) {
+          return <AccessDenied requiredRole="Admin" />;
+        }
+        return <SettingsManagement />;
       default:
         return <Dashboard />;
     }

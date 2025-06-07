@@ -8,6 +8,7 @@ import dotenv from 'dotenv';
 import medicineRoutes from './routes/medicines';
 import storeRoutes from './routes/stores';
 import supplyRoutes from './routes/supplies';
+import userRoutes from './routes/users';
 
 // Import middleware
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
@@ -48,6 +49,7 @@ app.get('/health', (req, res) => {
 app.use('/api/medicines', medicineRoutes);
 app.use('/api/stores', storeRoutes);
 app.use('/api/supplies', supplyRoutes);
+app.use('/api/users', userRoutes);
 
 // Error handling middleware
 app.use(notFoundHandler);
