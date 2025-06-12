@@ -329,7 +329,7 @@ const AnalyticsDashboard = () => {
     },
     {
       title: 'Total Value',
-      value: `$${stats.totalValue.toLocaleString()}`,
+      value: `₹${stats.totalValue.toLocaleString()}`,
       change: supplies.length > 0 ? '+18%' : '0%',
       changeType: 'positive' as const,
       icon: DollarSign,

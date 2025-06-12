@@ -25,7 +25,11 @@ interface RecentActivity {
   company?: string;
 }
 
-const Dashboard = () => {
+interface DashboardProps {
+  onNavigate?: (page: string) => void;
+}
+
+const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [stores, setStores] = useState<MedicalStore[]>([]);
@@ -406,7 +410,10 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 hover:shadow-md transition-all cursor-pointer group">
+              <Card 
+                className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 hover:shadow-md transition-all cursor-pointer group"
+                onClick={() => onNavigate && onNavigate('medicines')}
+              >
                 <CardContent className="p-4 text-center">
                   <Pill className="w-8 h-8 mx-auto text-blue-600 mb-2 group-hover:scale-110 transition-transform" />
                   <h3 className="font-semibold text-blue-800 text-sm">Add Medicine</h3>
@@ -414,7 +421,10 @@ const Dashboard = () => {
                 </CardContent>
               </Card>
 
-              <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200 hover:shadow-md transition-all cursor-pointer group">
+              <Card 
+                className="bg-gradient-to-br from-green-50 to-green-100 border-green-200 hover:shadow-md transition-all cursor-pointer group"
+                onClick={() => onNavigate && onNavigate('stores')}
+              >
                 <CardContent className="p-4 text-center">
                   <Building2 className="w-8 h-8 mx-auto text-green-600 mb-2 group-hover:scale-110 transition-transform" />
                   <h3 className="font-semibold text-green-800 text-sm">Add Store</h3>
@@ -422,7 +432,10 @@ const Dashboard = () => {
                 </CardContent>
               </Card>
 
-              <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 hover:shadow-md transition-all cursor-pointer group">
+              <Card 
+                className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 hover:shadow-md transition-all cursor-pointer group"
+                onClick={() => onNavigate && onNavigate('supplies')}
+              >
                 <CardContent className="p-4 text-center">
                   <Database className="w-8 h-8 mx-auto text-purple-600 mb-2 group-hover:scale-110 transition-transform" />
                   <h3 className="font-semibold text-purple-800 text-sm">Record Supply</h3>

@@ -15,14 +15,14 @@ export const getAllMedicines = async (req: Request, res: Response) => {
       message: 'Medicines retrieved successfully'
     };
 
-    res.json(response);
+    return res.json(response);
   } catch (error) {
     console.error('Error fetching medicines:', error);
     const response: ApiResponse = {
       success: false,
       error: 'Failed to fetch medicines'
     };
-    res.status(500).json(response);
+    return res.status(500).json(response);
   }
 };
 
@@ -59,7 +59,7 @@ export const getMedicineById = async (req: Request, res: Response) => {
       success: false,
       error: 'Failed to fetch medicine'
     };
-    res.status(500).json(response);
+    return res.status(500).json(response);
   }
 };
 
@@ -81,14 +81,14 @@ export const createMedicine = async (req: Request, res: Response) => {
       message: 'Medicine created successfully'
     };
 
-    res.status(201).json(response);
+    return res.status(201).json(response);
   } catch (error) {
     console.error('Error creating medicine:', error);
     const response: ApiResponse = {
       success: false,
       error: 'Failed to create medicine'
     };
-    res.status(500).json(response);
+    return res.status(500).json(response);
   }
 };
 
@@ -126,7 +126,7 @@ export const updateMedicine = async (req: Request, res: Response) => {
       success: false,
       error: 'Failed to update medicine'
     };
-    res.status(500).json(response);
+    return res.status(500).json(response);
   }
 };
 
@@ -155,7 +155,7 @@ export const deleteMedicine = async (req: Request, res: Response) => {
       success: false,
       error: 'Failed to delete medicine'
     };
-    res.status(500).json(response);
+    return res.status(500).json(response);
   }
 };
 
@@ -180,13 +180,13 @@ export const getExpiringMedicines = async (req: Request, res: Response) => {
       message: `Medicines expiring within ${days} days retrieved successfully`
     };
 
-    res.json(response);
+    return res.json(response);
   } catch (error) {
     console.error('Error fetching expiring medicines:', error);
     const response: ApiResponse = {
       success: false,
       error: 'Failed to fetch expiring medicines'
     };
-    res.status(500).json(response);
+    return res.status(500).json(response);
   }
 };

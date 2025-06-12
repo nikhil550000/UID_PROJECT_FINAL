@@ -1,11 +1,36 @@
 // API service for pharmaceutical management system
-const API_BASE_URL = 'http://localhost:5001/api';
+const API_BASE_URL = 'http://localhost:5000/api';
 
 interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   message?: string;
   error?: string;
+}
+
+// Authentication interfaces
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+}
+
+interface LoginCredentials {
+  email: string;
+  password: string;
+}
+
+interface RegisterData {
+  name: string;
+  email: string;
+  password: string;
+  role?: string;
+}
+
+interface AuthResponse {
+  user: User;
+  token: string;
 }
 
 // Medicine interfaces
@@ -106,16 +131,33 @@ async function apiRequest<T>(
     const response = await fetch(url, config);
     const data = await response.json();
 
-    if (!response.ok) {
-      throw new Error(data.error || `HTTP error! status: ${response.status}`);
-    }
-
+    // Return the parsed response regardless of status
+    // Let the calling code handle success/error based on data.success
     return data;
   } catch (error) {
     console.error('API request failed:', error);
-    throw error;
+    // Return a standardized error response
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Network error occurred'
+    };
   }
 }
+
+// Authentication API functions
+export const authApi = {
+  login: (credentials: LoginCredentials) =>
+    apiRequest<AuthResponse>('/users/login', {
+      method: 'POST',
+      body: JSON.stringify(credentials),
+    }),
+  
+  register: (data: RegisterData) =>
+    apiRequest<AuthResponse>('/users/register', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+};
 
 // Medicine API functions
 export const medicineApi = {
@@ -229,4 +271,7 @@ export type {
   CreateUserInput,
   UpdateUserInput,
   ApiResponse,
+  LoginCredentials,
+  RegisterData,
+  AuthResponse,
 };

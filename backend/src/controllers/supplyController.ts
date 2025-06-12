@@ -19,14 +19,14 @@ export const getAllSupplies = async (req: Request, res: Response) => {
       message: 'Supplies retrieved successfully'
     };
 
-    res.json(response);
+    return res.json(response);
   } catch (error) {
     console.error('Error fetching supplies:', error);
     const response: ApiResponse = {
       success: false,
       error: 'Failed to fetch supplies'
     };
-    res.status(500).json(response);
+    return res.status(500).json(response);
   }
 };
 
@@ -55,14 +55,14 @@ export const getSupplyById = async (req: Request, res: Response) => {
       message: 'Supply record retrieved successfully'
     };
 
-    res.json(response);
+    return res.json(response);
   } catch (error) {
     console.error('Error fetching supply:', error);
     const response: ApiResponse = {
       success: false,
       error: 'Failed to fetch supply record'
     };
-    res.status(500).json(response);
+    return res.status(500).json(response);
   }
 };
 
@@ -109,7 +109,7 @@ export const createSupply = async (req: Request, res: Response) => {
       message: 'Supply record created successfully'
     };
 
-    res.status(201).json(response);
+    return res.status(201).json(response);
   } catch (error: any) {
     console.error('Error creating supply:', error);
     if (error.code === 'P2002') {
@@ -123,7 +123,7 @@ export const createSupply = async (req: Request, res: Response) => {
       success: false,
       error: 'Failed to create supply record'
     };
-    res.status(500).json(response);
+    return res.status(500).json(response);
   }
 };
 
@@ -152,7 +152,7 @@ export const updateSupply = async (req: Request, res: Response) => {
       message: 'Supply record updated successfully'
     };
 
-    res.json(response);
+    return res.json(response);
   } catch (error: any) {
     console.error('Error updating supply:', error);
     if (error.code === 'P2025') {
@@ -166,7 +166,7 @@ export const updateSupply = async (req: Request, res: Response) => {
       success: false,
       error: 'Failed to update supply record'
     };
-    res.status(500).json(response);
+    return res.status(500).json(response);
   }
 };
 
@@ -183,7 +183,7 @@ export const deleteSupply = async (req: Request, res: Response) => {
       message: 'Supply record deleted successfully'
     };
 
-    res.json(response);
+    return res.json(response);
   } catch (error: any) {
     console.error('Error deleting supply:', error);
     if (error.code === 'P2025') {
@@ -197,7 +197,7 @@ export const deleteSupply = async (req: Request, res: Response) => {
       success: false,
       error: 'Failed to delete supply record'
     };
-    res.status(500).json(response);
+    return res.status(500).json(response);
   }
 };
 

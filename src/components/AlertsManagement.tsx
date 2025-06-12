@@ -300,7 +300,7 @@ const AlertsManagement = () => {
         type: 'info',
         category: 'system',
         title: 'High Inventory Value',
-        message: `Total inventory value is $${totalValue.toLocaleString()} - Monitor for optimal stock levels`,
+        message: `Total inventory value is ₹${totalValue.toLocaleString()} - Monitor for optimal stock levels`,
         severity: 'low',
         createdAt: new Date().toISOString(),
         isRead: false,
@@ -670,7 +670,7 @@ const AlertsManagement = () => {
                             {alert.value !== undefined && (
                               <div className="flex items-center gap-1">
                                 <DollarSign className="w-4 h-4" />
-                                <span>${alert.value.toLocaleString()}</span>
+                                <span>₹{alert.value.toLocaleString()}</span>
                               </div>
                             )}
                           </div>
@@ -796,7 +796,7 @@ const AlertsManagement = () => {
                             {alert.value !== undefined && (
                               <div className="flex items-center gap-1">
                                 <DollarSign className="w-4 h-4" />
-                                <span>${alert.value.toLocaleString()}</span>
+                                <span>₹{alert.value.toLocaleString()}</span>
                               </div>
                             )}
                           </div>

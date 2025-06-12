@@ -10,9 +10,10 @@ import { Lock, Mail, Eye, EyeOff } from 'lucide-react';
 
 interface LoginFormProps {
   onSwitchToSignup: () => void;
+  onBackToLanding?: () => void;
 }
 
-const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToSignup }) => {
+const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToSignup, onBackToLanding }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -28,9 +29,16 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToSignup }) => {
       return;
     }
 
-    const success = await login(email, password);
-    if (!success) {
-      setError('Invalid email or password');
+    try {
+      await login(email, password);
+      // If we reach here, login was successful
+    } catch (error: any) {
+      console.error('Login error:', error);
+      if (error.message) {
+        setError(error.message);
+      } else {
+        setError('Login failed. Please check your credentials and try again.');
+      }
     }
   };
 
@@ -113,13 +121,24 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToSignup }) => {
                 Admin: admin@pharma.com / admin123<br />
                 Employer: employer@pharma.com / employer123
               </div>
-              <button
-                type="button"
-                onClick={onSwitchToSignup}
-                className="text-sm text-green-600 hover:text-green-700"
-              >
-                Don't have an account? Sign up
-              </button>
+              <div className="flex flex-col space-y-2">
+                <button
+                  type="button"
+                  onClick={onSwitchToSignup}
+                  className="text-sm text-green-600 hover:text-green-700"
+                >
+                  Don't have an account? Sign up
+                </button>
+                {onBackToLanding && (
+                  <button
+                    type="button"
+                    onClick={onBackToLanding}
+                    className="text-sm text-blue-600 hover:text-blue-700"
+                  >
+                    ← Back to Home
+                  </button>
+                )}
+              </div>
             </div>
           </form>
         </CardContent>

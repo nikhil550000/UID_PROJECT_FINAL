@@ -19,19 +19,19 @@ interface SidebarProps {
   isOpen: boolean;
   activeTab: string;
   onTabChange: (tab: string) => void;
-  userRole?: 'admin' | 'employer';
+  userRole?: string;
 }
 
 const menuItems = [
   { id: 'dashboard', label: 'Dashboard', icon: Home, badge: null, requiredRole: null },
-  { id: 'medicines', label: 'Medicines', icon: Package, badge: null, requiredRole: 'employer' },
-  { id: 'stores', label: 'Medical Stores', icon: Building2, badge: null, requiredRole: 'employer' },
-  { id: 'supplies', label: 'Supply Records', icon: Truck, badge: null, requiredRole: 'employer' },
-  { id: 'analytics', label: 'Analytics', icon: BarChart3, badge: null, requiredRole: 'admin' },
-  { id: 'reports', label: 'Reports', icon: FileText, badge: 'New', requiredRole: 'admin' },
-  { id: 'alerts', label: 'Alerts', icon: AlertTriangle, badge: '3', requiredRole: null },
-  { id: 'users', label: 'Users', icon: Users, badge: null, requiredRole: 'admin' },
-  { id: 'settings', label: 'Settings', icon: Settings, badge: null, requiredRole: null },
+  { id: 'medicines', label: 'Medicines', icon: Package, badge: null, requiredRole: 'EMPLOYEE' },
+  { id: 'stores', label: 'Medical Stores', icon: Building2, badge: null, requiredRole: 'EMPLOYEE' },
+  { id: 'supplies', label: 'Supply Records', icon: Truck, badge: null, requiredRole: 'EMPLOYEE' },
+  { id: 'analytics', label: 'Analytics', icon: BarChart3, badge: null, requiredRole: 'EMPLOYEE' },
+  { id: 'reports', label: 'Reports', icon: FileText, badge: 'New', requiredRole: 'EMPLOYEE' },
+  { id: 'alerts', label: 'Alerts', icon: AlertTriangle, badge: '3', requiredRole: 'EMPLOYEE' },
+  { id: 'users', label: 'Users', icon: Users, badge: null, requiredRole: 'ADMIN' },
+  { id: 'settings', label: 'Settings', icon: Settings, badge: null, requiredRole: 'ADMIN' },
 ];
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, activeTab, onTabChange, userRole }) => {
@@ -39,8 +39,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, activeTab, onTabChange, userR
   const getVisibleMenuItems = () => {
     return menuItems.filter(item => {
       if (!item.requiredRole) return true; // No role requirement
-      if (userRole === 'admin') return true; // Admin can see everything
-      return item.requiredRole === userRole; // Match exact role requirement
+      if (userRole?.toUpperCase() === 'ADMIN') return true; // Admin can see everything
+      return item.requiredRole === userRole?.toUpperCase(); // Match exact role requirement
     });
   };
 

@@ -1,21 +1,21 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { authApi } from '@/services/api';
 
 interface User {
-  id: string;
+  id: number;
   name: string;
   email: string;
-  role: 'admin' | 'employer';
+  role: string;
 }
 
 interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<boolean>;
-  signup: (email: string, password: string, name: string, role: 'admin' | 'employer') => Promise<boolean>;
+  signup: (email: string, password: string, name: string, role: string) => Promise<boolean>;
   logout: () => void;
   isLoading: boolean;
   isAuthenticated: boolean;
-  hasAccess: (requiredRole: 'admin' | 'employer') => boolean;
+  hasAccess: (requiredRole: string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -52,105 +52,55 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     try {
-      // Mock authentication - replace with actual API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const response = await authApi.login({ email, password });
       
-      // Check for demo accounts
-      if (email === 'admin@pharma.com' && password === 'admin123') {
-        const mockUser: User = {
-          id: '1',
-          name: 'John Doe',
-          email: email,
-          role: 'admin'
+      if (response.success && response.data) {
+        const userData: User = {
+          id: response.data.user.id,
+          name: response.data.user.name,
+          email: response.data.user.email,
+          role: response.data.user.role
         };
         
-        setUser(mockUser);
-        localStorage.setItem('auth_token', 'mock_token_123');
-        localStorage.setItem('user_data', JSON.stringify(mockUser));
+        setUser(userData);
+        localStorage.setItem('auth_token', response.data.token);
+        localStorage.setItem('user_data', JSON.stringify(userData));
         return true;
-      } else if (email === 'employer@pharma.com' && password === 'employer123') {
-        const mockUser: User = {
-          id: '2',
-          name: 'Jane Smith',
-          email: email,
-          role: 'employer'
-        };
-        
-        setUser(mockUser);
-        localStorage.setItem('auth_token', 'mock_token_456');
-        localStorage.setItem('user_data', JSON.stringify(mockUser));
-        return true;
+      } else {
+        // Throw error with the server's error message
+        throw new Error(response.error || 'Invalid email or password');
       }
-      
-      // Check registered users from localStorage
-      const registeredUsers = JSON.parse(localStorage.getItem('registered_users') || '[]');
-      const foundUser = registeredUsers.find((u: any) => u.email === email && u.password === password);
-      
-      if (foundUser) {
-        const userToSet: User = {
-          id: foundUser.id,
-          name: foundUser.name,
-          email: foundUser.email,
-          role: foundUser.role
-        };
-        
-        setUser(userToSet);
-        localStorage.setItem('auth_token', `token_${foundUser.id}`);
-        localStorage.setItem('user_data', JSON.stringify(userToSet));
-        return true;
-      }
-      
-      return false;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login error:', error);
-      return false;
+      throw error; // Re-throw so components can handle specific errors
     } finally {
       setIsLoading(false);
     }
   };
 
-  const signup = async (email: string, password: string, name: string, role: 'admin' | 'employer'): Promise<boolean> => {
+  const signup = async (email: string, password: string, name: string, role: string): Promise<boolean> => {
     setIsLoading(true);
     try {
-      // Mock signup - replace with actual API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const response = await authApi.register({ name, email, password, role });
       
-      // Check if user already exists
-      const registeredUsers = JSON.parse(localStorage.getItem('registered_users') || '[]');
-      const existingUser = registeredUsers.find((u: any) => u.email === email);
-      
-      if (existingUser) {
-        return false; // User already exists
+      if (response.success && response.data) {
+        const userData: User = {
+          id: response.data.user.id,
+          name: response.data.user.name,
+          email: response.data.user.email,
+          role: response.data.user.role
+        };
+        
+        setUser(userData);
+        localStorage.setItem('auth_token', response.data.token);
+        localStorage.setItem('user_data', JSON.stringify(userData));
+        return true;
+      } else {
+        throw new Error(response.error || 'Registration failed');
       }
-      
-      // Create new user
-      const newUser = {
-        id: Date.now().toString(),
-        name,
-        email,
-        password,
-        role
-      };
-      
-      registeredUsers.push(newUser);
-      localStorage.setItem('registered_users', JSON.stringify(registeredUsers));
-      
-      // Auto-login the new user
-      const userToSet: User = {
-        id: newUser.id,
-        name: newUser.name,
-        email: newUser.email,
-        role: newUser.role
-      };
-      
-      setUser(userToSet);
-      localStorage.setItem('auth_token', `token_${newUser.id}`);
-      localStorage.setItem('user_data', JSON.stringify(userToSet));
-      
-      return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Signup error:', error);
-      return false;
+      throw error; // Re-throw so components can handle specific errors
     } finally {
       setIsLoading(false);
     }
@@ -162,20 +112,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('user_data');
   };
 
-  const hasAccess = (requiredRole: 'admin' | 'employer'): boolean => {
+  const isAuthenticated = !!user;
+
+  const hasAccess = (requiredRole: string): boolean => {
     if (!user) return false;
-    if (user.role === 'admin') return true; // Admin has access to everything
-    return user.role === requiredRole;
+    
+    // Allow access if user role matches or if user is admin
+    return user.role.toUpperCase() === requiredRole.toUpperCase() || 
+           user.role.toUpperCase() === 'ADMIN';
   };
 
-  const value = {
+  const value: AuthContextType = {
     user,
     login,
     signup,
     logout,
     isLoading,
-    isAuthenticated: !!user,
-    hasAccess
+    isAuthenticated,
+    hasAccess,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

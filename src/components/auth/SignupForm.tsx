@@ -11,22 +11,23 @@ import { Lock, Mail, Eye, EyeOff, User, Building2 } from 'lucide-react';
 
 interface SignupFormProps {
   onSwitchToLogin: () => void;
+  onBackToLanding?: () => void;
 }
 
-const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
+const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin, onBackToLanding }) => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'employer' as 'admin' | 'employer'
+    role: 'EMPLOYEE' as 'ADMIN' | 'EMPLOYEE'
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
   const { signup, isLoading } = useAuth();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
@@ -40,14 +41,32 @@ const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
       return;
     }
 
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters long');
+    if (formData.password.length < 8) {
+      setError('Password must be at least 8 characters long');
       return;
     }
 
-    const success = await signup(formData.email, formData.password, formData.name, formData.role);
-    if (!success) {
-      setError('Registration failed. Please try again.');
+    // Check password complexity
+    const hasUpperCase = /[A-Z]/.test(formData.password);
+    const hasLowerCase = /[a-z]/.test(formData.password);
+    const hasNumbers = /\d/.test(formData.password);
+    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(formData.password);
+
+    if (!hasUpperCase || !hasLowerCase || !hasNumbers || !hasSpecialChar) {
+      setError('Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character');
+      return;
+    }
+
+    try {
+      await signup(formData.email, formData.password, formData.name, formData.role);
+      // If we reach here, signup was successful
+    } catch (error: any) {
+      console.error('Signup error:', error);
+      if (error.message) {
+        setError(error.message);
+      } else {
+        setError('Registration failed. Please check your information and try again.');
+      }
     }
   };
 
@@ -113,18 +132,18 @@ const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
               <Label className="text-sm font-medium text-gray-700">Role</Label>
               <RadioGroup
                 value={formData.role}
-                onValueChange={(value) => setFormData({ ...formData, role: value as 'admin' | 'employer' })}
+                onValueChange={(value) => setFormData({ ...formData, role: value as 'ADMIN' | 'EMPLOYEE' })}
                 className="flex space-x-6"
               >
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="employer" id="employer" />
-                  <Label htmlFor="employer" className="flex items-center space-x-2 cursor-pointer">
-                    <Building2 className="h-4 w-4 text-blue-600" />
-                    <span>Employer</span>
+                  <RadioGroupItem value="EMPLOYEE" id="employee" />
+                  <Label htmlFor="employee" className="flex items-center space-x-2 cursor-pointer">
+                    <User className="h-4 w-4 text-green-600" />
+                    <span>Employee</span>
                   </Label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="admin" id="admin" />
+                  <RadioGroupItem value="ADMIN" id="admin" />
                   <Label htmlFor="admin" className="flex items-center space-x-2 cursor-pointer">
                     <Lock className="h-4 w-4 text-purple-600" />
                     <span>Admin</span>
@@ -191,7 +210,7 @@ const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
               {isLoading ? 'Creating Account...' : 'Create Account'}
             </Button>
 
-            <div className="text-center">
+            <div className="text-center space-y-2">
               <button
                 type="button"
                 onClick={onSwitchToLogin}
@@ -199,6 +218,15 @@ const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
               >
                 Already have an account? Sign in
               </button>
+              {onBackToLanding && (
+                <button
+                  type="button"
+                  onClick={onBackToLanding}
+                  className="text-sm text-green-600 hover:text-green-700"
+                >
+                  ← Back to Home
+                </button>
+              )}
             </div>
           </form>
         </CardContent>

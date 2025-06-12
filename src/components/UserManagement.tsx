@@ -29,7 +29,7 @@ const UserManagement = () => {
     name: '',
     email: '',
     password: '',
-    role: 'employer'
+    role: 'EMPLOYEE'
   });
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [editData, setEditData] = useState<UpdateUserInput>({});
@@ -117,7 +117,7 @@ const UserManagement = () => {
       const response = await userApi.create(newUser);
       if (response.success) {
         toast({ title: "User created successfully!" });
-        setNewUser({ name: '', email: '', password: '', role: 'employer' });
+        setNewUser({ name: '', email: '', password: '', role: 'EMPLOYEE' });
         loadUsers();
       } else {
         toast({ 
@@ -445,8 +445,8 @@ const UserManagement = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="employer">Employer</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="EMPLOYEE">Employee</SelectItem>
+                  <SelectItem value="ADMIN">Admin</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -521,8 +521,8 @@ const UserManagement = () => {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="employer">Employer</SelectItem>
-                              <SelectItem value="admin">Admin</SelectItem>
+                              <SelectItem value="EMPLOYEE">Employee</SelectItem>
+                              <SelectItem value="ADMIN">Admin</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>

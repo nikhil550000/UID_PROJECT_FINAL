@@ -290,7 +290,7 @@ const MedicineManagement = () => {
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
                           <div className="flex items-center gap-2">
                             <DollarSign className="w-4 h-4" />
-                            <span>Price: ${Number(medicine.price).toFixed(2)}</span>
+                            <span>Price: ₹{Number(medicine.price).toFixed(2)}</span>
                           </div>
                           <div className="flex items-center gap-2">
                             <Calendar className="w-4 h-4" />

@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import AuthContainer from '@/components/auth/AuthContainer';
+import PharmaLanding from '@/components/PharmaLanding';
 import Navbar from '@/components/layout/Navbar';
 import Sidebar from '@/components/layout/Sidebar';
 import Dashboard from '@/components/Dashboard';
@@ -20,6 +21,7 @@ const PharmDBApp = () => {
   const { isAuthenticated, isLoading, user, hasAccess } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [showAuth, setShowAuth] = useState(false);
 
   if (isLoading) {
     return (
@@ -29,8 +31,19 @@ const PharmDBApp = () => {
     );
   }
 
-  if (!isAuthenticated) {
+  // Show authentication form when requested
+  if (showAuth && !isAuthenticated) {
     return <AuthContainer />;
+  }
+
+  // Show landing page if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <PharmaLanding 
+        onGetStarted={() => setShowAuth(true)}
+        onLogin={() => setShowAuth(true)}
+      />
+    );
   }
 
   // Role-based access control for different sections
@@ -38,7 +51,7 @@ const PharmDBApp = () => {
     // Check if user has access to the current tab
     switch (activeTab) {
       case 'dashboard':
-        return <Dashboard />;
+        return <Dashboard onNavigate={(page) => setActiveTab(page)} />;
       case 'medicines':
         if (!hasAccess('employer')) {
           return <AccessDenied requiredRole="Employer or Admin" />;

@@ -22,6 +22,8 @@ import {
 } from 'lucide-react';
 import { medicineApi, storeApi, supplyApi } from '@/services/api';
 import { useToast } from '@/hooks/use-toast';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 interface Medicine {
   id: number;
@@ -288,10 +290,158 @@ const ReportsManagement = () => {
   };
 
   const exportToPDF = () => {
-    toast({
-      title: "PDF Export",
-      description: "PDF export functionality would be implemented here.",
-    });
+    try {
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.width;
+      
+      // Header
+      doc.setFontSize(20);
+      doc.setTextColor(59, 130, 246); // Blue color
+      doc.text('PharmaCover Reports', pageWidth / 2, 20, { align: 'center' });
+      
+      doc.setFontSize(12);
+      doc.setTextColor(0, 0, 0);
+      doc.text(`Generated on: ${new Date().toLocaleDateString()}`, pageWidth / 2, 30, { align: 'center' });
+      
+      let yPosition = 50;
+      
+      // Executive Summary
+      if (reportStats) {
+        doc.setFontSize(16);
+        doc.setTextColor(59, 130, 246);
+        doc.text('Executive Summary', 20, yPosition);
+        yPosition += 10;
+        
+        doc.setFontSize(10);
+        doc.setTextColor(0, 0, 0);
+        
+        const summaryData = [
+          ['Total Medicines', reportStats.totalMedicines.toString()],
+          ['Active Stores', reportStats.totalStores.toString()],
+          ['Supply Records', reportStats.totalSupplies.toString()],
+          ['Total Value', `₹${reportStats.totalValue.toLocaleString()}`],
+          ['Expiring Soon', reportStats.expiringMedicines.toString()],
+          ['Low Stock', reportStats.lowStockMedicines.toString()]
+        ];
+        
+        (doc as any).autoTable({
+          startY: yPosition,
+          head: [['Metric', 'Value']],
+          body: summaryData,
+          theme: 'grid',
+          styles: { fontSize: 10 },
+          headStyles: { fillColor: [59, 130, 246] }
+        });
+        
+        yPosition = (doc as any).lastAutoTable.finalY + 20;
+      }
+      
+      // Check if we need a new page
+      if (yPosition > 250) {
+        doc.addPage();
+        yPosition = 20;
+      }
+      
+      // Medicine Inventory Report
+      const inventoryReport = generateInventoryReport();
+      doc.setFontSize(16);
+      doc.setTextColor(59, 130, 246);
+      doc.text('Medicine Inventory Report', 20, yPosition);
+      yPosition += 10;
+      
+      const inventoryData = inventoryReport.slice(0, 10).map(item => [
+        item.medicine.name,
+        item.medicine.company,
+        item.totalSupplied.toString(),
+        `₹${item.totalValue.toFixed(2)}`,
+        item.status.toUpperCase()
+      ]);
+      
+      (doc as any).autoTable({
+        startY: yPosition,
+        head: [['Medicine', 'Company', 'Total Supplied', 'Total Value', 'Status']],
+        body: inventoryData,
+        theme: 'grid',
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [59, 130, 246] },
+        columnStyles: {
+          0: { cellWidth: 35 },
+          1: { cellWidth: 30 },
+          2: { cellWidth: 25 },
+          3: { cellWidth: 25 },
+          4: { cellWidth: 20 }
+        }
+      });
+      
+      yPosition = (doc as any).lastAutoTable.finalY + 20;
+      
+      // Check if we need a new page
+      if (yPosition > 220) {
+        doc.addPage();
+        yPosition = 20;
+      }
+      
+      // Store Performance Report
+      const storeReport = generateStoreReport();
+      doc.setFontSize(16);
+      doc.setTextColor(59, 130, 246);
+      doc.text('Store Performance Report', 20, yPosition);
+      yPosition += 10;
+      
+      const storeData = storeReport.slice(0, 10).map(item => [
+        item.store.store_name,
+        item.store.location,
+        item.totalMedicines.toString(),
+        item.totalQuantity.toString(),
+        `₹${item.totalValue.toFixed(2)}`
+      ]);
+      
+      (doc as any).autoTable({
+        startY: yPosition,
+        head: [['Store Name', 'Location', 'Medicines', 'Quantity', 'Total Value']],
+        body: storeData,
+        theme: 'grid',
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [59, 130, 246] },
+        columnStyles: {
+          0: { cellWidth: 40 },
+          1: { cellWidth: 35 },
+          2: { cellWidth: 25 },
+          3: { cellWidth: 25 },
+          4: { cellWidth: 30 }
+        }
+      });
+      
+      // Footer
+      const pageCount = doc.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(128, 128, 128);
+        doc.text(
+          `Page ${i} of ${pageCount} - PharmaCover Reports`,
+          pageWidth / 2,
+          doc.internal.pageSize.height - 10,
+          { align: 'center' }
+        );
+      }
+      
+      // Save the PDF
+      doc.save(`PharmaCover-Report-${new Date().toISOString().split('T')[0]}.pdf`);
+      
+      toast({
+        title: "PDF Export Successful",
+        description: "Your comprehensive report has been downloaded.",
+      });
+      
+    } catch (error) {
+      console.error('PDF Export Error:', error);
+      toast({
+        title: "PDF Export Failed",
+        description: "There was an error generating the PDF report.",
+        variant: "destructive"
+      });
+    }
   };
 
   // Get unique companies for filter
@@ -375,7 +525,7 @@ const ReportsManagement = () => {
                 <div className="text-sm text-blue-100">Supply Records</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold">${reportStats.totalValue.toLocaleString()}</div>
+                <div className="text-2xl font-bold">₹{reportStats.totalValue.toLocaleString()}</div>
                 <div className="text-sm text-blue-100">Total Value</div>
               </div>
             </div>
@@ -540,7 +690,7 @@ const ReportsManagement = () => {
                           </div>
                           <div>
                             <span className="text-gray-600">Total Value:</span>
-                            <div className="font-semibold">${item.totalValue.toFixed(2)}</div>
+                            <div className="font-semibold">₹{item.totalValue.toFixed(2)}</div>
                           </div>
                           <div>
                             <span className="text-gray-600">Stores Supplied:</span>
@@ -608,7 +758,7 @@ const ReportsManagement = () => {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">Total Value:</span>
-                        <span className="font-medium">${item.totalValue.toFixed(2)}</span>
+                        <span className="font-medium">₹{item.totalValue.toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">Supply Records:</span>
@@ -674,7 +824,7 @@ const ReportsManagement = () => {
                       </div>
                       <div>
                         <span className="text-gray-600">Total Value:</span>
-                        <div className="font-semibold">${item.totalValue.toFixed(2)}</div>
+                        <div className="font-semibold">₹{item.totalValue.toFixed(2)}</div>
                       </div>
                     </div>
                   </div>
