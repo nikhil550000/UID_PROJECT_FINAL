@@ -8,7 +8,15 @@ export const getAllSupplies = async (req: Request, res: Response) => {
     const supplies = await prisma.supply.findMany({
       include: {
         medicine: true,
-        store: true
+        store: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true
+          }
+        }
       },
       orderBy: { created_at: 'desc' }
     });

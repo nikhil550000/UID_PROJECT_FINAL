@@ -31,7 +31,23 @@ export const loginUser = async (req: Request, res: Response) => {
 
     // Find user by email
     const user = await prisma.user.findUnique({
-      where: { email }
+      where: { email },
+      include: {
+        employee: {
+          select: {
+            department: true,
+            can_manage_medicines: true,
+            can_manage_stores: true,
+            can_approve_orders: true,
+            can_manage_supplies: true
+          }
+        },
+        admin: {
+          select: {
+            admin_level: true
+          }
+        }
+      }
     });
 
     if (!user) {
@@ -71,7 +87,9 @@ export const loginUser = async (req: Request, res: Response) => {
           id: user.id,
           name: user.name,
           email: user.email,
-          role: user.role
+          role: user.role,
+          employee: user.employee,
+          admin: user.admin
         },
         token
       }
@@ -196,7 +214,21 @@ export const getAllUsers = async (req: Request, res: Response) => {
         role: true,
         is_active: true,
         created_at: true,
-        updated_at: true
+        updated_at: true,
+        employee: {
+          select: {
+            department: true,
+            can_manage_medicines: true,
+            can_manage_stores: true,
+            can_approve_orders: true,
+            can_manage_supplies: true
+          }
+        },
+        admin: {
+          select: {
+            admin_level: true
+          }
+        }
         // Don't select password for security
       }
     });
@@ -235,7 +267,21 @@ export const getUserById = async (req: Request, res: Response) => {
         role: true,
         is_active: true,
         created_at: true,
-        updated_at: true
+        updated_at: true,
+        employee: {
+          select: {
+            department: true,
+            can_manage_medicines: true,
+            can_manage_stores: true,
+            can_approve_orders: true,
+            can_manage_supplies: true
+          }
+        },
+        admin: {
+          select: {
+            admin_level: true
+          }
+        }
         // Don't select password for security
       }
     });

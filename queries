@@ -1,0 +1,100 @@
+
+--1. Count orders by status
+SELECT status, 
+       COUNT(*) as order_count,
+       AVG(quantity) as avg_quantity,
+       SUM(quantity) as total_quantity
+FROM orders 
+GROUP BY status
+HAVING COUNT(*) > 0;
+
+-- 2. Orders ordered by order_date and quantity
+SELECT order_id, medicine_id, store_id, quantity, order_date, status
+FROM orders
+ORDER BY order_date DESC, quantity DESC;
+
+-- 3. INNER JOIN: Orders with medicine and store details
+SELECT o.order_id, m.name as medicine_name, ms.store_name, o.quantity, o.status, o.order_date
+FROM orders o
+INNER JOIN medicines m ON o.medicine_id = m.id
+INNER JOIN medical_stores ms ON o.store_id = ms.store_id;
+
+
+-- 4. LEFT OUTER JOIN: Users with their employee details
+SELECT u.id, u.name, u.email, u.role, e.department
+FROM users u
+LEFT OUTER JOIN employees e ON u.id = e.user_id;
+
+-- 5. Orders with boolean operators
+SELECT order_id, medicine_id, store_id, quantity, status
+FROM orders
+WHERE (status = 'pending' OR status = 'approved') 
+  AND quantity >= 50 
+  AND NOT (store_id = 1);
+
+
+-- 6. Calculate supply analysis with dates
+SELECT supply_id,
+       quantity,
+       quantity / 100 as bulk_units,
+       quantity * 1.5 as increased_quantity,
+       EXTRACT(DAY FROM supply_date) + quantity as day_plus_quantity
+FROM supplies
+WHERE quantity > 0;
+
+
+--7. Search medicines using string operators
+SELECT name, company
+FROM medicines
+WHERE name ILIKE '%tablet%' 
+   OR company LIKE 'Sun%'
+   OR name LIKE '%mg'
+   OR company ILIKE '%pharma%';
+
+
+-- 8. Format order dates
+SELECT order_id,
+       TO_CHAR(order_date, 'Day, DD Month YYYY') as formatted_date,
+       TO_CHAR(order_date, 'YYYY-MM') as year_month,
+       EXTRACT(QUARTER FROM order_date) as quarter,
+       EXTRACT(WEEK FROM order_date) as week_number,
+       EXTRACT(DOW FROM order_date) as day_of_week
+FROM orders;
+
+-- 9. Using BETWEEN and NOT BETWEEN with medicines
+SELECT name, price, stock_quantity, date_of_expiry
+FROM medicines
+WHERE price BETWEEN 100 AND 1000
+  AND stock_quantity NOT BETWEEN 10 AND 30
+  AND id BETWEEN 1 AND 20
+  AND date_of_expiry BETWEEN '2024-01-01' AND '2025-12-31';
+
+
+ -- 10. Using IN and NOT IN with orders
+SELECT order_id, medicine_id, store_id, status, quantity
+FROM orders
+WHERE medicine_id IN (1, 2, 3, 4, 5)
+  AND store_id NOT IN (1)
+  AND status IN ('pending', 'approved')
+  AND order_id NOT IN (1, 2);
+
+
+-- 11. UNION with user roles and employee departments
+SELECT role as category, COUNT(*) as count
+FROM users
+GROUP BY role
+UNION
+SELECT department as category, COUNT(*) as count
+FROM employees
+GROUP BY department
+ORDER BY category;
+
+
+-- 12. EXISTS: Find stores that have orders
+SELECT store_name, city, state
+FROM medical_stores ms
+WHERE EXISTS (
+    SELECT 1 
+    FROM orders o 
+    WHERE o.store_id = ms.store_id
+);

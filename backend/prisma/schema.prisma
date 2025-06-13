@@ -8,15 +8,22 @@ datasource db {
 }
 
 model Medicine {
-  id                  Int      @id @default(autoincrement())
-  name                String   @db.VarChar(255)
-  company             String   @db.VarChar(255)
-  date_of_manufacture DateTime @db.Date
-  date_of_expiry      DateTime @db.Date
-  price               Decimal  @db.Decimal(10, 2)
-  created_at          DateTime @default(now())
-  updated_at          DateTime @updatedAt
+  id                  Int       @id @default(autoincrement())
+  name                String    @db.VarChar(255)
+  company             String    @db.VarChar(255)
+  date_of_manufacture DateTime  @db.Date
+  date_of_expiry      DateTime  @db.Date
+  price               Decimal   @db.Decimal(10, 2)
+  stock_quantity      Int       @default(0)  // Current stock level
+  minimum_stock       Int       @default(10) // Threshold for low stock warning
+  last_restocked_quantity Int?  // Last quantity added to stock
+  restocked_at        DateTime? // Last time stock was replenished
+  restocked_by        Int?      // User who last restocked (reference to User.id)
+  stock_notes         String?   @db.Text // Notes about last restocking
+  created_at          DateTime  @default(now())
+  updated_at          DateTime  @updatedAt
   supplies            Supply[]
+  orderRequests       Order[]
 
   @@index([name])
   @@index([company])
@@ -25,46 +32,152 @@ model Medicine {
 }
 
 model MedicalStore {
-  store_id   Int      @id @default(autoincrement())
-  store_name String   @db.VarChar(255)
-  location   String
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-  supplies   Supply[]
+  store_id    Int       @id @default(autoincrement())
+  store_name  String    @db.VarChar(255)
+  city        String    @db.VarChar(100)
+  state       String    @db.VarChar(100)
+  pin_code    String    @db.VarChar(20)
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
+  supplies    Supply[]
+  orderRequests Order[]
 
   @@index([store_name])
-  @@index([location])
+  @@index([city])
+  @@index([state])
+  @@index([pin_code])
   @@map("medical_stores")
 }
 
+// Ternary relationship between user, medicine, and store
 model Supply {
   supply_id   Int          @id @default(autoincrement())
   medicine_id Int
   store_id    Int
+  user_id     Int
   quantity    Int
   supply_date DateTime     @db.Date
+  status      String       @default("pending") @db.VarChar(50)
   created_at  DateTime     @default(now())
   medicine    Medicine     @relation(fields: [medicine_id], references: [id], onDelete: Cascade)
   store       MedicalStore @relation(fields: [store_id], references: [store_id], onDelete: Cascade)
+  user        User         @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@unique([medicine_id, store_id, supply_date])
   @@index([medicine_id])
   @@index([store_id])
+  @@index([user_id])
   @@index([supply_date])
   @@map("supplies")
 }
 
+// Base User model (parent entity for specialization)
 model User {
-  id         Int      @id @default(autoincrement())
-  name       String   @db.VarChar(255)
-  email      String   @unique @db.VarChar(255)
-  password   String   @db.VarChar(255)
-  role       String   @db.VarChar(50) @default("employer")
-  is_active  Boolean  @default(true)
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
+  id         Int       @id @default(autoincrement())
+  name       String    @db.VarChar(255)
+  email      String    @unique @db.VarChar(255)
+  password   String    @db.VarChar(255)
+  role       String    @db.VarChar(50) @default("employee")
+  is_active  Boolean   @default(true)
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  supplies   Supply[]
+  
+  // Orders user has approved
+  approvedOrders Order[]  @relation("OrderApprover")
+  
+  // Orders user has requested
+  requestedOrders Order[] @relation("OrderRequester")
+  
+  // Specialization - Admin type
+  admin      Admin?
+  
+  // Specialization - Employee type
+  employee   Employee?
+  
+  // For unary relationship - employees supervised by this user (if admin)
+  supervises Supervision[] @relation("supervisor")
+  
+  // For unary relationship - this user is supervised by an admin
+  supervisedBy Supervision[] @relation("supervisee")
+  
+  // Multivalued attribute: phone numbers
+  phone_numbers UserPhoneNumber[]
 
   @@index([email])
   @@index([role])
   @@map("users")
+}
+
+// Phone numbers as a separate table to store multivalued attribute
+model UserPhoneNumber {
+  id       Int      @id @default(autoincrement())
+  user_id  Int
+  phone    String   @db.VarChar(20)
+  is_primary Boolean @default(false)
+  user     User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  
+  @@unique([user_id, phone])
+  @@map("user_phone_numbers")
+}
+
+// Specialization - Admin
+model Admin {
+  user_id     Int    @id
+  admin_level Int    @default(1)
+  user        User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  
+  @@map("admins")
+}
+
+// Specialization - Employee
+model Employee {
+  user_id             Int    @id
+  department          String @db.VarChar(100)
+  can_manage_medicines Boolean @default(false) // Permission to edit medicines
+  can_manage_stores   Boolean @default(false) // Permission to edit stores
+  can_approve_orders  Boolean @default(false) // Permission to approve orders
+  can_manage_supplies Boolean @default(false) // Permission to manage supplies
+  user                User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  
+  @@map("employees")
+}
+
+// Unary relationship - Admins supervising employees
+model Supervision {
+  id            Int      @id @default(autoincrement())
+  supervisor_id Int
+  supervisee_id Int
+  assigned_at   DateTime @default(now())
+  supervisor    User     @relation("supervisor", fields: [supervisor_id], references: [id], onDelete: Cascade)
+  supervisee    User     @relation("supervisee", fields: [supervisee_id], references: [id], onDelete: Cascade)
+
+  @@unique([supervisor_id, supervisee_id])
+  @@map("supervisions")
+}
+
+// Order approval process
+model Order {
+  order_id      Int          @id @default(autoincrement())
+  medicine_id   Int
+  store_id      Int
+  requester_id  Int?         // Store employee who requested (can be null for system-generated)
+  approver_id   Int?         // User who approves the order (null if not approved yet)
+  quantity      Int
+  order_date    DateTime     @default(now())
+  status        String       @default("pending") @db.VarChar(50) // pending, approved, rejected
+  notes         String?      @db.Text           // Any notes on the order or reason for rejection
+  approved_at   DateTime?    // When the order was approved or rejected
+  delivered_at  DateTime?    // When the order was delivered
+  medicine      Medicine     @relation(fields: [medicine_id], references: [id], onDelete: Cascade)
+  store         MedicalStore @relation(fields: [store_id], references: [store_id], onDelete: Cascade)
+  approver      User?        @relation("OrderApprover", fields: [approver_id], references: [id])
+  requester     User?        @relation("OrderRequester", fields: [requester_id], references: [id])
+
+  @@index([medicine_id])
+  @@index([store_id])
+  @@index([approver_id])
+  @@index([requester_id])
+  @@index([status])
+  @@map("orders")
 }

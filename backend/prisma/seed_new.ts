@@ -1,4 +1,3 @@
-
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
@@ -48,7 +47,9 @@ async function main() {
         company: 'BiotechLabs',
         date_of_manufacture: new Date('2024-01-20'),
         date_of_expiry: new Date('2025-01-20'),
-        price: 25.30
+        price: 25.30,
+        stock_quantity: 200,
+        minimum_stock: 40
       }
     }),
     prisma.medicine.create({
@@ -57,7 +58,9 @@ async function main() {
         company: 'NatureCare',
         date_of_manufacture: new Date('2024-02-25'),
         date_of_expiry: new Date('2026-02-25'),
-        price: 15.45
+        price: 15.45,
+        stock_quantity: 450,
+        minimum_stock: 30
       }
     }),
     prisma.medicine.create({
@@ -66,7 +69,9 @@ async function main() {
         company: 'ReliefMed',
         date_of_manufacture: new Date('2024-03-15'),
         date_of_expiry: new Date('2025-09-15'),
-        price: 10.25
+        price: 10.25,
+        stock_quantity: 150,
+        minimum_stock: 25
       }
     })
   ]);
@@ -124,7 +129,6 @@ async function main() {
   const defaultPassword = await bcrypt.hash('password123', saltRounds);
   
   // Create users with specializations
-  // First create base users
   const users = await Promise.all([
     // Admin users
     prisma.user.create({
@@ -165,7 +169,7 @@ async function main() {
       }
     }),
     
-    // Employee users
+    // Employee users with different permissions
     prisma.user.create({
       data: {
         name: 'Bob Williams',
@@ -174,7 +178,11 @@ async function main() {
         role: 'employee',
         employee: {
           create: {
-            department: 'Sales'
+            department: 'Sales',
+            can_manage_medicines: true,
+            can_approve_orders: false,
+            can_manage_stores: false,
+            can_manage_supplies: true
           }
         },
         phone_numbers: {
@@ -192,7 +200,11 @@ async function main() {
         role: 'employee',
         employee: {
           create: {
-            department: 'Logistics'
+            department: 'Logistics',
+            can_manage_medicines: false,
+            can_approve_orders: true,
+            can_manage_stores: true,
+            can_manage_supplies: false
           }
         },
         phone_numbers: {
@@ -211,7 +223,11 @@ async function main() {
         role: 'employee',
         employee: {
           create: {
-            department: 'Sales'
+            department: 'Sales',
+            can_manage_medicines: true,
+            can_approve_orders: true,
+            can_manage_stores: false,
+            can_manage_supplies: true
           }
         },
         phone_numbers: {
@@ -318,126 +334,88 @@ async function main() {
         supply_date: new Date('2024-03-05'),
         status: 'approved'
       }
-    }),
-
-    // Amoxicillin supplies
-    prisma.supply.create({
-      data: {
-        medicine_id: medicines[3].id,
-        store_id: stores[2].store_id,
-        user_id: users[0].id, // John Admin
-        quantity: 50,
-        supply_date: new Date('2024-03-10'),
-        status: 'approved'
-      }
-    }),
-    prisma.supply.create({
-      data: {
-        medicine_id: medicines[3].id,
-        store_id: stores[3].store_id,
-        user_id: users[2].id, // Bob Employee
-        quantity: 60,
-        supply_date: new Date('2024-03-15'),
-        status: 'approved'
-      }
-    }),
-
-    // Vitamin D3 supplies
-    prisma.supply.create({
-      data: {
-        medicine_id: medicines[4].id,
-        store_id: stores[0].store_id,
-        user_id: users[3].id, // Alice Employee
-        quantity: 200,
-        supply_date: new Date('2024-04-01'),
-        status: 'approved'
-      }
-    }),
-    prisma.supply.create({
-      data: {
-        medicine_id: medicines[4].id,
-        store_id: stores[4].store_id,
-        user_id: users[1].id, // Sarah Admin
-        quantity: 180,
-        supply_date: new Date('2024-04-05'),
-        status: 'approved'
-      }
-    }),
-
-    // Cough Syrup supplies
-    prisma.supply.create({
-      data: {
-        medicine_id: medicines[5].id,
-        store_id: stores[1].store_id,
-        user_id: users[4].id, // Mark Employee
-        quantity: 40,
-        supply_date: new Date('2024-05-01'),
-        status: 'approved'
-      }
-    }),
-    prisma.supply.create({
-      data: {
-        medicine_id: medicines[5].id,
-        store_id: stores[2].store_id,
-        user_id: users[0].id, // John Admin
-        quantity: 35,
-        supply_date: new Date('2024-05-05'),
-        status: 'approved'
-      }
     })
   ]);
 
+  console.log(`✅ Created ${supplies.length} supply records`);
+
   // Create order requests (for approval workflow)
   const orders = await Promise.all([
+    // Approved orders
     prisma.order.create({
       data: {
         medicine_id: medicines[0].id,
         store_id: stores[3].store_id,
-        approver_id: users[0].id, // John Admin
+        requester_id: users[3].id, // Alice requested
+        approver_id: users[0].id, // John approved
         quantity: 50,
         status: 'approved',
-        approved_at: new Date()
+        notes: 'Urgent requirement',
+        approved_at: new Date('2024-05-01'),
+        delivered_at: new Date('2024-05-03')
       }
     }),
     prisma.order.create({
       data: {
         medicine_id: medicines[1].id,
         store_id: stores[2].store_id,
-        approver_id: users[1].id, // Sarah Admin
+        requester_id: users[4].id, // Mark requested
+        approver_id: users[1].id, // Sarah approved
         quantity: 75,
         status: 'approved',
-        approved_at: new Date()
+        notes: 'Regular monthly order',
+        approved_at: new Date('2024-05-05'),
+        delivered_at: new Date('2024-05-07')
       }
     }),
+    
+    // Pending orders
     prisma.order.create({
       data: {
         medicine_id: medicines[2].id,
         store_id: stores[0].store_id,
+        requester_id: users[2].id, // Bob requested
         quantity: 100,
-        status: 'pending'
+        status: 'pending',
+        notes: 'Preparing for flu season'
       }
     }),
     prisma.order.create({
       data: {
         medicine_id: medicines[3].id,
         store_id: stores[4].store_id,
+        requester_id: users[3].id, // Alice requested
         quantity: 60,
-        status: 'pending'
+        status: 'pending',
+        notes: 'Stock running low'
+      }
+    }),
+    
+    // Rejected order
+    prisma.order.create({
+      data: {
+        medicine_id: medicines[5].id,
+        store_id: stores[1].store_id,
+        requester_id: users[4].id, // Mark requested
+        approver_id: users[0].id, // John rejected
+        quantity: 200,
+        status: 'rejected',
+        notes: 'Insufficient central stock',
+        approved_at: new Date('2024-05-10')
       }
     })
   ]);
 
-  console.log(`✅ Created ${supplies.length} supply records`);
   console.log(`✅ Created ${orders.length} order records`);
 
   console.log('🎉 Database seeding completed successfully!');
   console.log('\n📊 Summary:');
-  console.log(`   • ${medicines.length} medicines created`);
+  console.log(`   • ${medicines.length} medicines created with stock tracking`);
   console.log(`   • ${stores.length} medical stores created`);
   console.log(`   • ${users.length} users created (${users.filter(u => u.role === 'admin').length} admins, ${users.filter(u => u.role === 'employee').length} employees)`);
   console.log(`   • ${supervisions.length} supervision relationships created`);
-  console.log(`   • ${supplies.length} supply relationships created`);
-  console.log(`   • ${orders.length} order requests created`);
+  console.log(`   • ${supplies.length} supply records created`);
+  console.log(`   • ${orders.length} order requests created (${orders.filter(o => o.status === 'approved').length} approved, ${orders.filter(o => o.status === 'pending').length} pending, ${orders.filter(o => o.status === 'rejected').length} rejected)`);
   console.log('\n🚀 You can now start the server and test the API endpoints!');
 }
 

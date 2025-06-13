@@ -36,17 +36,25 @@ async function testCRUDOperations() {
     const newStore = await prisma.medicalStore.create({
       data: {
         store_name: 'Test Medical Store',
-        location: 'Test Location, City'
+        city: 'Test City',
+        state: 'Test State',
+        pin_code: '12345'
       }
     });
     console.log('✅ Store created:', newStore);
 
     // Test 5: CREATE Supply relationship
     console.log('\n5. Testing CREATE Supply...');
+    
+    // Get or create a user for the supply
+    const existingUser = await prisma.user.findFirst();
+    const userId = existingUser?.id || 1; // Use existing user or fallback to ID 1
+    
     const newSupply = await prisma.supply.create({
       data: {
         medicine_id: newMedicine.id,
         store_id: newStore.store_id,
+        user_id: userId,
         quantity: 100,
         supply_date: new Date()
       }

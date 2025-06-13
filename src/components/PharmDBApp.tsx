@@ -9,6 +9,7 @@ import Dashboard from '@/components/Dashboard';
 import MedicineManagement from '@/components/MedicineManagement';
 import StoreManagement from '@/components/StoreManagement';
 import SupplyManagement from '@/components/SupplyManagement';
+import OrderManagement from '@/components/OrderManagement';
 import AnalyticsDashboard from '@/components/analytics/AnalyticsDashboard';
 import ReportsManagement from '@/components/ReportsManagement';
 import AlertsManagement from '@/components/AlertsManagement';
@@ -67,6 +68,11 @@ const PharmDBApp = () => {
           return <AccessDenied requiredRole="Employer or Admin" />;
         }
         return <SupplyManagement />;
+      case 'orders':
+        if (!hasAccess('employer')) {
+          return <AccessDenied requiredRole="Employer or Admin" />;
+        }
+        return <OrderManagement />;
       case 'analytics':
         if (!hasAccess('admin')) {
           return <AccessDenied requiredRole="Admin" />;

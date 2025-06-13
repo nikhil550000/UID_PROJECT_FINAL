@@ -12,7 +12,8 @@ import {
   Settings,
   Users,
   FileText,
-  AlertTriangle
+  AlertTriangle,
+  ShoppingCart
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -27,6 +28,7 @@ const menuItems = [
   { id: 'medicines', label: 'Medicines', icon: Package, badge: null, requiredRole: 'EMPLOYEE' },
   { id: 'stores', label: 'Medical Stores', icon: Building2, badge: null, requiredRole: 'EMPLOYEE' },
   { id: 'supplies', label: 'Supply Records', icon: Truck, badge: null, requiredRole: 'EMPLOYEE' },
+  { id: 'orders', label: 'Order Management', icon: ShoppingCart, badge: null, requiredRole: 'EMPLOYEE' },
   { id: 'analytics', label: 'Analytics', icon: BarChart3, badge: null, requiredRole: 'EMPLOYEE' },
   { id: 'reports', label: 'Reports', icon: FileText, badge: 'New', requiredRole: 'EMPLOYEE' },
   { id: 'alerts', label: 'Alerts', icon: AlertTriangle, badge: '3', requiredRole: 'EMPLOYEE' },

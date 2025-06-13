@@ -160,10 +160,26 @@ export const getStoresByLocation = async (req: Request, res: Response) => {
     const { location } = req.params;
     const stores = await prisma.medicalStore.findMany({
       where: {
-        location: {
-          contains: location,
-          mode: 'insensitive'
-        }
+        OR: [
+          {
+            city: {
+              contains: location,
+              mode: 'insensitive'
+            }
+          },
+          {
+            state: {
+              contains: location,
+              mode: 'insensitive'
+            }
+          },
+          {
+            pin_code: {
+              contains: location,
+              mode: 'insensitive'
+            }
+          }
+        ]
       },
       orderBy: { store_name: 'asc' }
     });

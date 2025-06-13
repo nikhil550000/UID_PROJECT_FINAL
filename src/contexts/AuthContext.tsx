@@ -1,12 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { authApi } from '@/services/api';
-
-interface User {
-  id: number;
-  name: string;
-  email: string;
-  role: string;
-}
+import { authApi, User } from '@/services/api';
 
 interface AuthContextType {
   user: User | null;
@@ -55,12 +48,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const response = await authApi.login({ email, password });
       
       if (response.success && response.data) {
-        const userData: User = {
-          id: response.data.user.id,
-          name: response.data.user.name,
-          email: response.data.user.email,
-          role: response.data.user.role
-        };
+        const userData: User = response.data.user;
         
         setUser(userData);
         localStorage.setItem('auth_token', response.data.token);
@@ -84,12 +72,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const response = await authApi.register({ name, email, password, role });
       
       if (response.success && response.data) {
-        const userData: User = {
-          id: response.data.user.id,
-          name: response.data.user.name,
-          email: response.data.user.email,
-          role: response.data.user.role
-        };
+        const userData: User = response.data.user;
         
         setUser(userData);
         localStorage.setItem('auth_token', response.data.token);

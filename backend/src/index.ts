@@ -9,6 +9,10 @@ import medicineRoutes from './routes/medicines';
 import storeRoutes from './routes/stores';
 import supplyRoutes from './routes/supplies';
 import userRoutes from './routes/users';
+import orderRoutes from './routes/orders';
+import stockRoutes from './routes/stock';
+import permissionRoutes from './routes/permissions';
+import analyticsRoutes from './routes/analytics';
 
 // Import middleware
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
@@ -50,6 +54,10 @@ app.use('/api/medicines', medicineRoutes);
 app.use('/api/stores', storeRoutes);
 app.use('/api/supplies', supplyRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api/stock', stockRoutes);
+app.use('/api/permissions', permissionRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 // Error handling middleware
 app.use(notFoundHandler);

@@ -12,7 +12,9 @@ const StoreManagement = () => {
   const [stores, setStores] = useState<MedicalStore[]>([]);
   const [newStore, setNewStore] = useState<CreateStoreInput>({
     store_name: '',
-    location: ''
+    city: '',
+    state: '',
+    pin_code: ''
   });
   const [editingStore, setEditingStore] = useState<MedicalStore | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -48,7 +50,7 @@ const StoreManagement = () => {
     loadStores();
   }, [loadStores]);
   const handleCreateStore = async () => {
-    if (!newStore.store_name.trim() || !newStore.location.trim()) {
+    if (!newStore.store_name.trim() || !newStore.city.trim() || !newStore.state.trim() || !newStore.pin_code.trim()) {
       toast({ title: "Please fill all required fields", variant: "destructive" });
       return;
     }
@@ -60,7 +62,9 @@ const StoreManagement = () => {
         setStores([...stores, response.data]);
         setNewStore({
           store_name: '',
-          location: ''
+          city: '',
+          state: '',
+          pin_code: ''
         });
         toast({ title: "Medical store added successfully!" });
       } else {
@@ -87,7 +91,9 @@ const StoreManagement = () => {
       setIsLoading(true);
       const updateData = {
         store_name: updates.store_name,
-        location: updates.location
+        city: updates.city,
+        state: updates.state,
+        pin_code: updates.pin_code
       };
       
       const response = await storeApi.update(store_id, updateData);
@@ -154,22 +160,35 @@ const StoreManagement = () => {
           <CardDescription>Register a new medical store location</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Input
               placeholder="Store name"
               value={newStore.store_name}
               onChange={(e) => setNewStore({ ...newStore, store_name: e.target.value })}
             />
             <Input
-              placeholder="Location"
-              value={newStore.location}
-              onChange={(e) => setNewStore({ ...newStore, location: e.target.value })}
+              placeholder="City"
+              value={newStore.city}
+              onChange={(e) => setNewStore({ ...newStore, city: e.target.value })}
             />
+            <Input
+              placeholder="State"
+              value={newStore.state}
+              onChange={(e) => setNewStore({ ...newStore, state: e.target.value })}
+            />
+            <Input
+              placeholder="Pin Code"
+              value={newStore.pin_code}
+              onChange={(e) => setNewStore({ ...newStore, pin_code: e.target.value })}
+            />
+          </div>
+          <div className="mt-4">
             <Button 
               onClick={handleCreateStore}
               className="bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600"
+              disabled={isLoading}
             >
-              Add Store
+              {isLoading ? 'Adding...' : 'Add Store'}
             </Button>
           </div>
         </CardContent>
@@ -203,20 +222,33 @@ const StoreManagement = () => {
                   {editingStore?.store_id === store.store_id ? (
                     <div className="space-y-3">
                       <Input
+                        placeholder="Store name"
                         value={editingStore.store_name}
                         onChange={(e) => setEditingStore({ ...editingStore, store_name: e.target.value })}
                       />
                       <Input
-                        value={editingStore.location}
-                        onChange={(e) => setEditingStore({ ...editingStore, location: e.target.value })}
+                        placeholder="City"
+                        value={editingStore.city}
+                        onChange={(e) => setEditingStore({ ...editingStore, city: e.target.value })}
+                      />
+                      <Input
+                        placeholder="State"
+                        value={editingStore.state}
+                        onChange={(e) => setEditingStore({ ...editingStore, state: e.target.value })}
+                      />
+                      <Input
+                        placeholder="Pin Code"
+                        value={editingStore.pin_code}
+                        onChange={(e) => setEditingStore({ ...editingStore, pin_code: e.target.value })}
                       />
                       <div className="flex gap-2">
                         <Button
                           size="sm"
                           onClick={() => handleUpdateStore(store.store_id, editingStore)}
                           className="bg-green-500 hover:bg-green-600"
+                          disabled={isLoading}
                         >
-                          Save
+                          {isLoading ? 'Saving...' : 'Save'}
                         </Button>
                         <Button
                           size="sm"
@@ -236,9 +268,15 @@ const StoreManagement = () => {
                             ID: {store.store_id}
                           </Badge>
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <MapPin className="w-4 h-4" />
-                          <span>{store.location}</span>
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <MapPin className="w-4 h-4" />
+                            <span>{store.city}, {store.state}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <span className="font-medium">Pin Code:</span>
+                            <span>{store.pin_code}</span>
+                          </div>
                         </div>
                       </div>
                       <div className="flex gap-2 ml-4">

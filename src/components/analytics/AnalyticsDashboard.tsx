@@ -27,7 +27,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
-import { medicineApi, storeApi, supplyApi, Medicine, MedicalStore, Supply } from '../../services/api';
+import { medicineApi, storeApi, supplyApi, analyticsApi, Medicine, MedicalStore, Supply } from '../../services/api';
 
 interface DashboardStats {
   totalMedicines: number;
@@ -35,6 +35,8 @@ interface DashboardStats {
   totalSupplies: number;
   expiringMedicines: number;
   totalValue: number;
+  lowStock: number;
+  pendingOrders: number;
 }
 
 interface MonthlySupplyData {
@@ -74,7 +76,9 @@ const AnalyticsDashboard = () => {
     totalStores: 0,
     totalSupplies: 0,
     expiringMedicines: 0,
-    totalValue: 0
+    totalValue: 0,
+    lowStock: 0,
+    pendingOrders: 0
   });
 
   const [monthlySupplies, setMonthlySupplies] = useState<MonthlySupplyData[]>([]);
@@ -149,6 +153,38 @@ const AnalyticsDashboard = () => {
     }
   }, [toast]);
 
+  // Load analytics data from new API
+  const loadAnalytics = useCallback(async () => {
+    try {
+      const response = await analyticsApi.getDashboardStats();
+      if (response.success && response.data) {
+        const analyticsData = response.data;
+        setStats({
+          totalMedicines: analyticsData.counts.medicines,
+          totalStores: analyticsData.counts.stores,
+          totalSupplies: analyticsData.counts.supplies,
+          expiringMedicines: analyticsData.counts.expiringMedicines,
+          totalValue: analyticsData.values.totalInventoryValue,
+          lowStock: analyticsData.counts.lowStock,
+          pendingOrders: analyticsData.counts.pendingOrders
+        });
+      } else {
+        toast({ 
+          title: "Error loading analytics", 
+          description: response.error || "Failed to load analytics",
+          variant: "destructive" 
+        });
+      }
+    } catch (error) {
+      console.error('Error loading analytics:', error);
+      toast({ 
+        title: "Error loading analytics", 
+        description: "Failed to connect to server",
+        variant: "destructive" 
+      });
+    }
+  }, [toast]);
+
   // Load all data on component mount
   useEffect(() => {
     const loadAllData = async () => {
@@ -156,13 +192,14 @@ const AnalyticsDashboard = () => {
       await Promise.all([
         loadMedicines(),
         loadStores(),
-        loadSupplies()
+        loadSupplies(),
+        loadAnalytics()
       ]);
       setIsLoading(false);
     };
 
     loadAllData();
-  }, [loadMedicines, loadStores, loadSupplies]);  // Calculate analytics data when raw data changes
+  }, [loadMedicines, loadStores, loadSupplies, loadAnalytics]);  // Calculate analytics data when raw data changes
   const calculateAnalytics = useCallback(() => {
     // Helper function to calculate monthly supply trends (last 6 months)
     const calculateMonthlySupplies = (): MonthlySupplyData[] => {
@@ -278,7 +315,13 @@ const AnalyticsDashboard = () => {
       return expiryDate <= thirtyDaysFromNow && expiryDate >= now;
     }).length;
 
-    const totalValue = supplies.reduce((sum, supply) => {
+    const totalValue = medicines.reduce((sum, medicine) => {
+      // Calculate total inventory value: price * stock_quantity for each medicine
+      return sum + (medicine.price * medicine.stock_quantity);
+    }, 0);
+
+    // Calculate total supply value for comparison
+    const totalSupplyValue = supplies.reduce((sum, supply) => {
       const medicine = medicines.find(m => m.id === supply.medicine_id);
       return sum + (medicine ? medicine.price * supply.quantity : 0);
     }, 0);
@@ -288,7 +331,9 @@ const AnalyticsDashboard = () => {
       totalStores: stores.length,
       totalSupplies: supplies.length,
       expiringMedicines: expiringCount,
-      totalValue
+      totalValue,
+      lowStock: medicines.filter(m => m.stock_quantity <= m.minimum_stock).length,
+      pendingOrders: 0 // Will be updated by loadAnalytics
     });
 
     // Calculate all chart data

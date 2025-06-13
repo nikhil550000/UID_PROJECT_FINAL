@@ -208,7 +208,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
         type: 'store',
         description: `${store.store_name} registered`,
         date: new Date(store.created_at).toLocaleDateString(),
-        location: store.location
+        location: `${store.city}, ${store.state}`
       });
     });
 
@@ -409,7 +409,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             <CardDescription>Common tasks and shortcuts</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Card 
                 className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 hover:shadow-md transition-all cursor-pointer group"
                 onClick={() => onNavigate && onNavigate('medicines')}
@@ -440,6 +440,17 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                   <Database className="w-8 h-8 mx-auto text-purple-600 mb-2 group-hover:scale-110 transition-transform" />
                   <h3 className="font-semibold text-purple-800 text-sm">Record Supply</h3>
                   <p className="text-xs text-purple-600 mt-1">Log transactions</p>
+                </CardContent>
+              </Card>
+
+              <Card 
+                className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 hover:shadow-md transition-all cursor-pointer group"
+                onClick={() => onNavigate && onNavigate('orders')}
+              >
+                <CardContent className="p-4 text-center">
+                  <Plus className="w-8 h-8 mx-auto text-orange-600 mb-2 group-hover:scale-110 transition-transform" />
+                  <h3 className="font-semibold text-orange-800 text-sm">Create Order</h3>
+                  <p className="text-xs text-orange-600 mt-1">Request medicines</p>
                 </CardContent>
               </Card>
             </div>
