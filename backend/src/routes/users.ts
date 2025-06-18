@@ -1,12 +1,14 @@
 import express from 'express';
 import {
   getAllUsers,
-  getUserById,
+  getUserByEmail,
   createUser,
   updateUser,
   deleteUser,
   loginUser,
-  registerUser
+  registerUser,
+  addPhoneNumber,
+  removePhoneNumber
 } from '../controllers/userController';
 
 const router = express.Router();
@@ -17,9 +19,13 @@ router.post('/register', registerUser);
 
 // User CRUD routes
 router.get('/', getAllUsers);
-router.get('/:id', getUserById);
+router.get('/:email', getUserByEmail);
 router.post('/', createUser);
-router.put('/:id', updateUser);
-router.delete('/:id', deleteUser);
+router.put('/:email', updateUser);
+router.delete('/:email', deleteUser);
+
+// Phone number management
+router.post('/:email/phones', addPhoneNumber);
+router.delete('/:email/phones/:phoneId', removePhoneNumber);
 
 export default router;

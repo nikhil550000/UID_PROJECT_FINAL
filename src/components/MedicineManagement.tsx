@@ -12,9 +12,13 @@ const MedicineManagement = () => {
   const [newMedicine, setNewMedicine] = useState<CreateMedicineInput>({
     name: '',
     company: '',
+    batch_number: '',
     date_of_manufacture: '',
     date_of_expiry: '',
-    price: 0
+    dosage_form: '',
+    strength: '',
+    stock_quantity: 0,
+    minimum_stock: 0
   });
   const [editingMedicine, setEditingMedicine] = useState<Medicine | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -62,9 +66,13 @@ const MedicineManagement = () => {
         setNewMedicine({
           name: '',
           company: '',
+          batch_number: '',
           date_of_manufacture: '',
           date_of_expiry: '',
-          price: 0
+          dosage_form: '',
+          strength: '',
+          stock_quantity: 0,
+          minimum_stock: 0
         });
         toast({ title: "Medicine added successfully!" });
       } else {
@@ -92,9 +100,13 @@ const MedicineManagement = () => {
       const updateData = {
         name: updates.name,
         company: updates.company,
+        batch_number: updates.batch_number,
         date_of_manufacture: updates.date_of_manufacture,
         date_of_expiry: updates.date_of_expiry,
-        price: updates.price
+        dosage_form: updates.dosage_form,
+        strength: updates.strength,
+        stock_quantity: updates.stock_quantity,
+        minimum_stock: updates.minimum_stock
       };
       
       const response = await medicineApi.update(id, updateData);
@@ -168,7 +180,8 @@ const MedicineManagement = () => {
           <CardDescription>Register a new pharmaceutical product</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">            <Input
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Input
               placeholder="Medicine name"
               value={newMedicine.name}
               onChange={(e) => setNewMedicine({ ...newMedicine, name: e.target.value })}
@@ -179,15 +192,37 @@ const MedicineManagement = () => {
               onChange={(e) => setNewMedicine({ ...newMedicine, company: e.target.value })}
             />
             <Input
+              placeholder="Batch number"
+              value={newMedicine.batch_number || ''}
+              onChange={(e) => setNewMedicine({ ...newMedicine, batch_number: e.target.value })}
+            />
+            <Input
+              placeholder="Dosage form (e.g., Tablet, Capsule)"
+              value={newMedicine.dosage_form || ''}
+              onChange={(e) => setNewMedicine({ ...newMedicine, dosage_form: e.target.value })}
+            />
+            <Input
+              placeholder="Strength (e.g., 500mg)"
+              value={newMedicine.strength || ''}
+              onChange={(e) => setNewMedicine({ ...newMedicine, strength: e.target.value })}
+            />
+            <Input
               type="number"
-              placeholder="Price"
-              value={newMedicine.price || ''}
-              onChange={(e) => setNewMedicine({ ...newMedicine, price: parseFloat(e.target.value) || 0 })}
+              placeholder="Stock quantity"
+              value={newMedicine.stock_quantity || ''}
+              onChange={(e) => setNewMedicine({ ...newMedicine, stock_quantity: parseInt(e.target.value) || 0 })}
+            />
+            <Input
+              type="number"
+              placeholder="Minimum stock"
+              value={newMedicine.minimum_stock || ''}
+              onChange={(e) => setNewMedicine({ ...newMedicine, minimum_stock: parseInt(e.target.value) || 0 })}
             />
             <Input
               type="date"
               placeholder="Manufacture date"
-              value={newMedicine.date_of_manufacture}              onChange={(e) => setNewMedicine({ ...newMedicine, date_of_manufacture: e.target.value })}
+              value={newMedicine.date_of_manufacture}
+              onChange={(e) => setNewMedicine({ ...newMedicine, date_of_manufacture: e.target.value })}
             />
             <Input
               type="date"
@@ -243,9 +278,25 @@ const MedicineManagement = () => {
                         onChange={(e) => setEditingMedicine({ ...editingMedicine, company: e.target.value })}
                       />
                       <Input
+                        value={editingMedicine.batch_number || ''}
+                        placeholder="Batch number"
+                        onChange={(e) => setEditingMedicine({ ...editingMedicine, batch_number: e.target.value })}
+                      />
+                      <Input
+                        value={editingMedicine.dosage_form || ''}
+                        placeholder="Dosage form"
+                        onChange={(e) => setEditingMedicine({ ...editingMedicine, dosage_form: e.target.value })}
+                      />
+                      <Input
+                        value={editingMedicine.strength || ''}
+                        placeholder="Strength"
+                        onChange={(e) => setEditingMedicine({ ...editingMedicine, strength: e.target.value })}
+                      />
+                      <Input
                         type="number"
-                        value={editingMedicine.price}
-                        onChange={(e) => setEditingMedicine({ ...editingMedicine, price: parseFloat(e.target.value) })}
+                        value={editingMedicine.stock_quantity}
+                        placeholder="Stock quantity"
+                        onChange={(e) => setEditingMedicine({ ...editingMedicine, stock_quantity: parseInt(e.target.value) || 0 })}
                       />
                       <Input
                         type="date"
@@ -287,10 +338,13 @@ const MedicineManagement = () => {
                             </Badge>
                           )}
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm text-gray-600">
                           <div className="flex items-center gap-2">
-                            <DollarSign className="w-4 h-4" />
-                            <span>Price: ₹{Number(medicine.price).toFixed(2)}</span>
+                            <Pill className="w-4 h-4" />
+                            <span>{medicine.dosage_form} - {medicine.strength}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span>Stock: {medicine.stock_quantity}</span>
                           </div>
                           <div className="flex items-center gap-2">
                             <Calendar className="w-4 h-4" />

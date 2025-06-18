@@ -14,7 +14,11 @@ const StoreManagement = () => {
     store_name: '',
     city: '',
     state: '',
-    pin_code: ''
+    street_address: '',
+    contact_person: '',
+    phone: '',
+    email: '',
+    license_number: ''
   });
   const [editingStore, setEditingStore] = useState<MedicalStore | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -50,7 +54,7 @@ const StoreManagement = () => {
     loadStores();
   }, [loadStores]);
   const handleCreateStore = async () => {
-    if (!newStore.store_name.trim() || !newStore.city.trim() || !newStore.state.trim() || !newStore.pin_code.trim()) {
+    if (!newStore.store_name.trim() || !newStore.city.trim() || !newStore.state.trim() || !newStore.street_address.trim()) {
       toast({ title: "Please fill all required fields", variant: "destructive" });
       return;
     }
@@ -64,7 +68,11 @@ const StoreManagement = () => {
           store_name: '',
           city: '',
           state: '',
-          pin_code: ''
+          street_address: '',
+          contact_person: '',
+          phone: '',
+          email: '',
+          license_number: ''
         });
         toast({ title: "Medical store added successfully!" });
       } else {
@@ -93,7 +101,11 @@ const StoreManagement = () => {
         store_name: updates.store_name,
         city: updates.city,
         state: updates.state,
-        pin_code: updates.pin_code
+        street_address: updates.street_address,
+        contact_person: updates.contact_person,
+        phone: updates.phone,
+        email: updates.email,
+        license_number: updates.license_number
       };
       
       const response = await storeApi.update(store_id, updateData);
@@ -177,9 +189,29 @@ const StoreManagement = () => {
               onChange={(e) => setNewStore({ ...newStore, state: e.target.value })}
             />
             <Input
-              placeholder="Pin Code"
-              value={newStore.pin_code}
-              onChange={(e) => setNewStore({ ...newStore, pin_code: e.target.value })}
+              placeholder="Street Address"
+              value={newStore.street_address}
+              onChange={(e) => setNewStore({ ...newStore, street_address: e.target.value })}
+            />
+            <Input
+              placeholder="Contact Person"
+              value={newStore.contact_person || ''}
+              onChange={(e) => setNewStore({ ...newStore, contact_person: e.target.value })}
+            />
+            <Input
+              placeholder="Phone"
+              value={newStore.phone || ''}
+              onChange={(e) => setNewStore({ ...newStore, phone: e.target.value })}
+            />
+            <Input
+              placeholder="Email"
+              value={newStore.email || ''}
+              onChange={(e) => setNewStore({ ...newStore, email: e.target.value })}
+            />
+            <Input
+              placeholder="License Number"
+              value={newStore.license_number || ''}
+              onChange={(e) => setNewStore({ ...newStore, license_number: e.target.value })}
             />
           </div>
           <div className="mt-4">
@@ -237,9 +269,29 @@ const StoreManagement = () => {
                         onChange={(e) => setEditingStore({ ...editingStore, state: e.target.value })}
                       />
                       <Input
-                        placeholder="Pin Code"
-                        value={editingStore.pin_code}
-                        onChange={(e) => setEditingStore({ ...editingStore, pin_code: e.target.value })}
+                        placeholder="Street Address"
+                        value={editingStore.street_address}
+                        onChange={(e) => setEditingStore({ ...editingStore, street_address: e.target.value })}
+                      />
+                      <Input
+                        placeholder="Contact Person"
+                        value={editingStore.contact_person || ''}
+                        onChange={(e) => setEditingStore({ ...editingStore, contact_person: e.target.value })}
+                      />
+                      <Input
+                        placeholder="Phone"
+                        value={editingStore.phone || ''}
+                        onChange={(e) => setEditingStore({ ...editingStore, phone: e.target.value })}
+                      />
+                      <Input
+                        placeholder="Email"
+                        value={editingStore.email || ''}
+                        onChange={(e) => setEditingStore({ ...editingStore, email: e.target.value })}
+                      />
+                      <Input
+                        placeholder="License Number"
+                        value={editingStore.license_number || ''}
+                        onChange={(e) => setEditingStore({ ...editingStore, license_number: e.target.value })}
                       />
                       <div className="flex gap-2">
                         <Button
@@ -274,9 +326,27 @@ const StoreManagement = () => {
                             <span>{store.city}, {store.state}</span>
                           </div>
                           <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <span className="font-medium">Pin Code:</span>
-                            <span>{store.pin_code}</span>
+                            <span className="font-medium">Address:</span>
+                            <span>{store.street_address}</span>
                           </div>
+                          {store.contact_person && (
+                            <div className="flex items-center gap-2 text-sm text-gray-600">
+                              <span className="font-medium">Contact:</span>
+                              <span>{store.contact_person}</span>
+                            </div>
+                          )}
+                          {store.phone && (
+                            <div className="flex items-center gap-2 text-sm text-gray-600">
+                              <span className="font-medium">Phone:</span>
+                              <span>{store.phone}</span>
+                            </div>
+                          )}
+                          {store.license_number && (
+                            <div className="flex items-center gap-2 text-sm text-gray-600">
+                              <span className="font-medium">License:</span>
+                              <span>{store.license_number}</span>
+                            </div>
+                          )}
                         </div>
                       </div>
                       <div className="flex gap-2 ml-4">

@@ -11,9 +11,8 @@ export const getAllSupplies = async (req: Request, res: Response) => {
         store: true,
         user: {
           select: {
-            id: true,
-            name: true,
             email: true,
+            name: true,
             role: true
           }
         }
@@ -45,7 +44,14 @@ export const getSupplyById = async (req: Request, res: Response) => {
       where: { supply_id: parseInt(id) },
       include: {
         medicine: true,
-        store: true
+        store: true,
+        user: {
+          select: {
+            email: true,
+            name: true,
+            role: true
+          }
+        }
       }
     });
 
@@ -103,11 +109,20 @@ export const createSupply = async (req: Request, res: Response) => {
     const supply = await prisma.supply.create({
       data: {
         ...supplyData,
-        supply_date: new Date(supplyData.supply_date)
+        supply_date: new Date(supplyData.supply_date),
+        total_amount: supplyData.quantity * supplyData.unit_price,
+        expiry_date: supplyData.expiry_date ? new Date(supplyData.expiry_date) : null
       },
       include: {
         medicine: true,
-        store: true
+        store: true,
+        user: {
+          select: {
+            email: true,
+            name: true,
+            role: true
+          }
+        }
       }
     });
 
@@ -142,7 +157,11 @@ export const updateSupply = async (req: Request, res: Response) => {
 
     const processedData = {
       ...updateData,
-      ...(updateData.supply_date && { supply_date: new Date(updateData.supply_date) })
+      ...(updateData.supply_date && { supply_date: new Date(updateData.supply_date) }),
+      ...(updateData.expiry_date && { expiry_date: new Date(updateData.expiry_date) }),
+      ...(updateData.quantity && updateData.unit_price && { 
+        total_amount: updateData.quantity * updateData.unit_price 
+      })
     };
 
     const supply = await prisma.supply.update({
@@ -150,7 +169,14 @@ export const updateSupply = async (req: Request, res: Response) => {
       data: processedData,
       include: {
         medicine: true,
-        store: true
+        store: true,
+        user: {
+          select: {
+            email: true,
+            name: true,
+            role: true
+          }
+        }
       }
     });
 

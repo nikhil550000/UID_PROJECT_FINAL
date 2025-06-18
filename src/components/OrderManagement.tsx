@@ -44,7 +44,7 @@ const OrderManagement = () => {
     notes: ''
   });
   const [processingOrder, setProcessingOrder] = useState<ProcessOrderInput>({
-    approver_id: 0,
+    approver_email: '',
     notes: ''
   });
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
@@ -183,7 +183,7 @@ const OrderManagement = () => {
   };
 
   const handleApproveOrder = async (orderId: number) => {
-    if (!user?.id) {
+    if (!user?.email) {
       toast({ title: "User not authenticated", variant: "destructive" });
       return;
     }
@@ -191,7 +191,7 @@ const OrderManagement = () => {
     try {
       setIsLoading(true);
       const approvalData: ProcessOrderInput = {
-        approver_id: user.id,
+        approver_email: user.email,
         notes: processingOrder.notes
       };
 
@@ -205,7 +205,7 @@ const OrderManagement = () => {
         setPendingOrders(pendingOrders.filter(order => order.order_id !== orderId));
         
         setSelectedOrderId(null);
-        setProcessingOrder({ approver_id: user.id, notes: '' });
+        setProcessingOrder({ approver_email: user.email, notes: '' });
         toast({ title: "Order approved successfully!" });
       } else {
         toast({ 
@@ -227,7 +227,7 @@ const OrderManagement = () => {
   };
 
   const handleRejectOrder = async (orderId: number) => {
-    if (!user?.id) {
+    if (!user?.email) {
       toast({ title: "User not authenticated", variant: "destructive" });
       return;
     }
@@ -235,7 +235,7 @@ const OrderManagement = () => {
     try {
       setIsLoading(true);
       const rejectionData: ProcessOrderInput = {
-        approver_id: user.id,
+        approver_email: user.email,
         notes: processingOrder.notes || 'Order rejected'
       };
 
@@ -249,7 +249,7 @@ const OrderManagement = () => {
         setPendingOrders(pendingOrders.filter(order => order.order_id !== orderId));
         
         setSelectedOrderId(null);
-        setProcessingOrder({ approver_id: user.id, notes: '' });
+        setProcessingOrder({ approver_email: user.email, notes: '' });
         toast({ title: "Order rejected successfully!" });
       } else {
         toast({ 
@@ -334,8 +334,8 @@ const OrderManagement = () => {
     // Admins can always approve orders
     if (user.role === 'admin') return true;
     
-    // Employees can approve orders if they have the permission
-    if (user.role === 'employee' && user.employee?.can_approve_orders) return true;
+    // Employees in Pharmacy department can approve orders
+    if (user.role === 'employee' && user.employee?.department === 'Pharmacy') return true;
     
     return false;
   };

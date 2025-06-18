@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
-import jwt from 'jsonwebtoken';
+import * as jwt from 'jsonwebtoken';
 
 const bcrypt = require('bcryptjs');
 
@@ -8,9 +8,9 @@ const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET || 'your-fallback-secret-key';
 
 // Generate JWT token
-const generateToken = (userId: number, email: string, role: string) => {
+const generateToken = (email: string, role: string) => {
   return jwt.sign(
-    { userId, email, role },
+    { email, role },
     JWT_SECRET,
     { expiresIn: '7d' }
   );
@@ -33,20 +33,9 @@ export const loginUser = async (req: Request, res: Response) => {
     const user = await prisma.user.findUnique({
       where: { email },
       include: {
-        employee: {
-          select: {
-            department: true,
-            can_manage_medicines: true,
-            can_manage_stores: true,
-            can_approve_orders: true,
-            can_manage_supplies: true
-          }
-        },
-        admin: {
-          select: {
-            admin_level: true
-          }
-        }
+        phone_numbers: true,
+        employee: true,
+        admin: true
       }
     });
 
@@ -66,7 +55,7 @@ export const loginUser = async (req: Request, res: Response) => {
     }
 
     // Verify password
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    const isPasswordValid = await bcrypt.compare(password, user.password_hash);
     
     if (!isPasswordValid) {
       return res.status(401).json({
@@ -75,8 +64,32 @@ export const loginUser = async (req: Request, res: Response) => {
       });
     }
 
+    // Get user permissions if employee
+    let permissions: { permission_type: string }[] = [];
+    if (user.employee) {
+      permissions = await prisma.systemPermission.findMany({
+        where: {
+          role: user.role,
+          department: user.employee.department,
+          is_granted: true
+        },
+        select: {
+          permission_type: true
+        }
+      });
+    }
+
     // Generate JWT token
-    const token = generateToken(user.id, user.email, user.role);
+    const token = generateToken(user.email, user.role);
+
+    // Update last login
+    await prisma.user.update({
+      where: { email },
+      data: { 
+        last_login: new Date(),
+        failed_attempts: 0 // Reset failed attempts on successful login
+      }
+    });
 
     // Return success response
     res.json({
@@ -84,12 +97,13 @@ export const loginUser = async (req: Request, res: Response) => {
       message: 'Login successful',
       data: {
         user: {
-          id: user.id,
-          name: user.name,
           email: user.email,
+          name: user.name,
           role: user.role,
+          primary_phone: user.primary_phone,
           employee: user.employee,
-          admin: user.admin
+          admin: user.admin,
+          permissions: permissions.map(p => p.permission_type)
         },
         token
       }
@@ -97,6 +111,23 @@ export const loginUser = async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('Login error:', error);
+    // Increment failed attempts
+    try {
+      const { email } = req.body;
+      if (email) {
+        await prisma.user.update({
+          where: { email },
+          data: {
+            failed_attempts: {
+              increment: 1
+            }
+          }
+        });
+      }
+    } catch (updateError) {
+      console.error('Failed to update failed attempts:', updateError);
+    }
+
     res.status(500).json({
       success: false,
       error: 'Internal server error during login'
@@ -107,7 +138,7 @@ export const loginUser = async (req: Request, res: Response) => {
 // Register endpoint
 export const registerUser = async (req: Request, res: Response) => {
   try {
-    const { name, email, password, role = 'EMPLOYEE' } = req.body;
+    const { name, email, password, role = 'employee', primary_phone, department } = req.body;
 
     // Validate input
     if (!name || !email || !password) {
@@ -163,21 +194,47 @@ export const registerUser = async (req: Request, res: Response) => {
     const saltRounds = 12;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    // Create user
-    const newUser = await prisma.user.create({
-      data: {
-        name,
-        email,
-        password: hashedPassword,
-        role: role.toUpperCase(),
-        is_active: true,
-        created_at: new Date(),
-        updated_at: new Date()
+    // Create user with associated employee/admin record
+    const newUser = await prisma.$transaction(async (tx) => {
+      // Create user
+      const user = await tx.user.create({
+        data: {
+          name,
+          email,
+          password_hash: hashedPassword,
+          role: role.toLowerCase(),
+          primary_phone,
+          is_active: true
+        }
+      });
+
+      // Create employee record if role is employee
+      if (role.toLowerCase() === 'employee' && department) {
+        await tx.employee.create({
+          data: {
+            user_email: email,
+            department,
+            join_date: new Date()
+          }
+        });
       }
+
+      // Create admin record if role is admin
+      if (role.toLowerCase() === 'admin' && department) {
+        await tx.admin.create({
+          data: {
+            user_email: email,
+            admin_level: 1,
+            department
+          }
+        });
+      }
+
+      return user;
     });
 
     // Generate JWT token
-    const token = generateToken(newUser.id, newUser.email, newUser.role);
+    const token = generateToken(newUser.email, newUser.role);
 
     // Return success response (don't include password)
     res.status(201).json({
@@ -185,10 +242,10 @@ export const registerUser = async (req: Request, res: Response) => {
       message: 'User registered successfully',
       data: {
         user: {
-          id: newUser.id,
-          name: newUser.name,
           email: newUser.email,
-          role: newUser.role
+          name: newUser.name,
+          role: newUser.role,
+          primary_phone: newUser.primary_phone
         },
         token
       }
@@ -208,25 +265,31 @@ export const getAllUsers = async (req: Request, res: Response) => {
   try {
     const users = await prisma.user.findMany({
       select: {
-        id: true,
-        name: true,
         email: true,
+        name: true,
         role: true,
+        primary_phone: true,
         is_active: true,
+        last_login: true,
         created_at: true,
         updated_at: true,
         employee: {
           select: {
             department: true,
-            can_manage_medicines: true,
-            can_manage_stores: true,
-            can_approve_orders: true,
-            can_manage_supplies: true
+            employee_id: true,
+            join_date: true
           }
         },
         admin: {
           select: {
-            admin_level: true
+            admin_level: true,
+            department: true
+          }
+        },
+        phone_numbers: {
+          select: {
+            phone: true,
+            phone_type: true
           }
         }
         // Don't select password for security
@@ -246,40 +309,49 @@ export const getAllUsers = async (req: Request, res: Response) => {
   }
 };
 
-// Get user by ID
-export const getUserById = async (req: Request, res: Response) => {
+// Get user by email
+export const getUserByEmail = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const { email } = req.params;
 
-    if (!id || isNaN(parseInt(id))) {
+    if (!email) {
       return res.status(400).json({
         success: false,
-        error: 'Valid user ID is required'
+        error: 'Email is required'
       });
     }
 
     const user = await prisma.user.findUnique({
-      where: { id: parseInt(id) },
+      where: { email },
       select: {
-        id: true,
-        name: true,
         email: true,
+        name: true,
         role: true,
+        primary_phone: true,
         is_active: true,
+        last_login: true,
+        failed_attempts: true,
         created_at: true,
         updated_at: true,
         employee: {
           select: {
             department: true,
-            can_manage_medicines: true,
-            can_manage_stores: true,
-            can_approve_orders: true,
-            can_manage_supplies: true
+            employee_id: true,
+            join_date: true,
+            salary: true
           }
         },
         admin: {
           select: {
-            admin_level: true
+            admin_level: true,
+            department: true,
+            appointed_at: true
+          }
+        },
+        phone_numbers: {
+          select: {
+            phone: true,
+            phone_type: true
           }
         }
         // Don't select password for security
@@ -293,9 +365,28 @@ export const getUserById = async (req: Request, res: Response) => {
       });
     }
 
+    // Get permissions if employee
+    let permissions: string[] = [];
+    if (user.employee) {
+      const userPermissions = await prisma.systemPermission.findMany({
+        where: {
+          role: user.role,
+          department: user.employee.department,
+          is_granted: true
+        },
+        select: {
+          permission_type: true
+        }
+      });
+      permissions = userPermissions.map(p => p.permission_type);
+    }
+
     res.json({
       success: true,
-      data: user
+      data: {
+        ...user,
+        permissions
+      }
     });
   } catch (error) {
     console.error('Get user error:', error);
@@ -309,7 +400,7 @@ export const getUserById = async (req: Request, res: Response) => {
 // Create user (admin endpoint)
 export const createUser = async (req: Request, res: Response) => {
   try {
-    const { name, email, password, role = 'EMPLOYEE' } = req.body;
+    const { name, email, password, role = 'employee', primary_phone, department, employee_id, admin_level } = req.body;
 
     // Validate input
     if (!name || !email || !password) {
@@ -335,27 +426,54 @@ export const createUser = async (req: Request, res: Response) => {
     const saltRounds = 12;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    // Create user
-    const newUser = await prisma.user.create({
-      data: {
-        name,
-        email,
-        password: hashedPassword,
-        role: role.toUpperCase(),
-        is_active: true,
-        created_at: new Date(),
-        updated_at: new Date()
+    // Create user with associated records
+    const newUser = await prisma.$transaction(async (tx) => {
+      // Create user
+      const user = await tx.user.create({
+        data: {
+          name,
+          email,
+          password_hash: hashedPassword,
+          role: role.toLowerCase(),
+          primary_phone,
+          is_active: true
+        }
+      });
+
+      // Create employee record if role is employee
+      if (role.toLowerCase() === 'employee' && department) {
+        await tx.employee.create({
+          data: {
+            user_email: email,
+            department,
+            employee_id: employee_id || undefined,
+            join_date: new Date()
+          }
+        });
       }
+
+      // Create admin record if role is admin  
+      if (role.toLowerCase() === 'admin' && department) {
+        await tx.admin.create({
+          data: {
+            user_email: email,
+            admin_level: admin_level || 1,
+            department
+          }
+        });
+      }
+
+      return user;
     });
 
     res.status(201).json({
       success: true,
       message: 'User created successfully',
       data: {
-        id: newUser.id,
-        name: newUser.name,
         email: newUser.email,
+        name: newUser.name,
         role: newUser.role,
+        primary_phone: newUser.primary_phone,
         is_active: newUser.is_active
       }
     });
@@ -372,19 +490,19 @@ export const createUser = async (req: Request, res: Response) => {
 // Update user
 export const updateUser = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
-    const { name, email, role, is_active } = req.body;
+    const { email } = req.params;
+    const { name, role, is_active, primary_phone } = req.body;
 
-    if (!id || isNaN(parseInt(id))) {
+    if (!email) {
       return res.status(400).json({
         success: false,
-        error: 'Valid user ID is required'
+        error: 'Email is required'
       });
     }
 
     // Check if user exists
     const existingUser = await prisma.user.findUnique({
-      where: { id: parseInt(id) }
+      where: { email }
     });
 
     if (!existingUser) {
@@ -394,29 +512,14 @@ export const updateUser = async (req: Request, res: Response) => {
       });
     }
 
-    // Check for email conflicts (if email is being updated)
-    if (email && email !== existingUser.email) {
-      const emailConflict = await prisma.user.findUnique({
-        where: { email }
-      });
-
-      if (emailConflict) {
-        return res.status(409).json({
-          success: false,
-          error: 'Email already exists'
-        });
-      }
-    }
-
     // Update user
     const updatedUser = await prisma.user.update({
-      where: { id: parseInt(id) },
+      where: { email },
       data: {
         ...(name && { name }),
-        ...(email && { email }),
-        ...(role && { role: role.toUpperCase() }),
+        ...(role && { role: role.toLowerCase() }),
         ...(typeof is_active === 'boolean' && { is_active }),
-        updated_at: new Date()
+        ...(primary_phone !== undefined && { primary_phone })
       }
     });
 
@@ -424,10 +527,10 @@ export const updateUser = async (req: Request, res: Response) => {
       success: true,
       message: 'User updated successfully',
       data: {
-        id: updatedUser.id,
-        name: updatedUser.name,
         email: updatedUser.email,
+        name: updatedUser.name,
         role: updatedUser.role,
+        primary_phone: updatedUser.primary_phone,
         is_active: updatedUser.is_active
       }
     });
@@ -444,18 +547,18 @@ export const updateUser = async (req: Request, res: Response) => {
 // Delete user
 export const deleteUser = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const { email } = req.params;
 
-    if (!id || isNaN(parseInt(id))) {
+    if (!email) {
       return res.status(400).json({
         success: false,
-        error: 'Valid user ID is required'
+        error: 'Email is required'
       });
     }
 
     // Check if user exists
     const existingUser = await prisma.user.findUnique({
-      where: { id: parseInt(id) }
+      where: { email }
     });
 
     if (!existingUser) {
@@ -465,9 +568,9 @@ export const deleteUser = async (req: Request, res: Response) => {
       });
     }
 
-    // Delete user
+    // Delete user (cascade will handle related records)
     await prisma.user.delete({
-      where: { id: parseInt(id) }
+      where: { email }
     });
 
     res.json({
@@ -480,6 +583,101 @@ export const deleteUser = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       error: 'Failed to delete user'
+    });
+  }
+};
+
+// Add phone number for user
+export const addPhoneNumber = async (req: Request, res: Response) => {
+  try {
+    const { email } = req.params;
+    const { phone, phone_type = 'secondary' } = req.body;
+
+    if (!email || !phone) {
+      return res.status(400).json({
+        success: false,
+        error: 'Email and phone number are required'
+      });
+    }
+
+    // Check if user exists
+    const user = await prisma.user.findUnique({
+      where: { email }
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+
+    // Add phone number
+    const phoneNumber = await prisma.userPhoneNumber.create({
+      data: {
+        user_email: email,
+        phone,
+        phone_type
+      }
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Phone number added successfully',
+      data: phoneNumber
+    });
+
+  } catch (error) {
+    console.error('Add phone error:', error);
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'P2002') {
+      return res.status(409).json({
+        success: false,
+        error: 'Phone number already exists for this user'
+      });
+    }
+    res.status(500).json({
+      success: false,
+      error: 'Failed to add phone number'
+    });
+  }
+};
+
+// Remove phone number
+export const removePhoneNumber = async (req: Request, res: Response) => {
+  try {
+    const { email, phoneId } = req.params;
+
+    if (!email || !phoneId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Email and phone ID are required'
+      });
+    }
+
+    // Delete phone number
+    await prisma.userPhoneNumber.delete({
+      where: {
+        id: parseInt(phoneId),
+        user_email: email
+      }
+    });
+
+    res.json({
+      success: true,
+      message: 'Phone number removed successfully'
+    });
+
+  } catch (error) {
+    console.error('Remove phone error:', error);
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'P2025') {
+      return res.status(404).json({
+        success: false,
+        error: 'Phone number not found'
+      });
+    }
+    res.status(500).json({
+      success: false,
+      error: 'Failed to remove phone number'
     });
   }
 };

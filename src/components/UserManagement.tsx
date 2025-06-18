@@ -29,7 +29,7 @@ const UserManagement = () => {
     name: '',
     email: '',
     password: '',
-    role: 'EMPLOYEE'
+    role: 'employee'
   });
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [editData, setEditData] = useState<UpdateUserInput>({});
@@ -117,7 +117,7 @@ const UserManagement = () => {
       const response = await userApi.create(newUser);
       if (response.success) {
         toast({ title: "User created successfully!" });
-        setNewUser({ name: '', email: '', password: '', role: 'EMPLOYEE' });
+        setNewUser({ name: '', email: '', password: '', role: 'employee' });
         loadUsers();
       } else {
         toast({ 
@@ -143,7 +143,7 @@ const UserManagement = () => {
 
     try {
       setIsLoading(true);
-      const response = await userApi.update(editingUser.id, editData);
+      const response = await userApi.update(editingUser.email, editData);
       if (response.success) {
         toast({ title: "User updated successfully!" });
         setEditingUser(null);
@@ -168,12 +168,12 @@ const UserManagement = () => {
     }
   };
 
-  const handleDeleteUser = async (id: number) => {
+  const handleDeleteUser = async (email: string) => {
     if (!confirm('Are you sure you want to delete this user?')) return;
 
     try {
       setIsLoading(true);
-      const response = await userApi.delete(id);
+      const response = await userApi.delete(email);
       if (response.success) {
         toast({ title: "User deleted successfully!" });
         loadUsers();
@@ -196,10 +196,10 @@ const UserManagement = () => {
     }
   };
 
-  const handleToggleStatus = async (id: number) => {
+  const handleToggleStatus = async (email: string) => {
     try {
       setIsLoading(true);
-      const response = await userApi.toggleStatus(id);
+      const response = await userApi.toggleStatus(email);
       if (response.success) {
         toast({ title: response.message || "User status updated successfully!" });
         loadUsers();
@@ -489,10 +489,10 @@ const UserManagement = () => {
             <div className="space-y-4">
               {filteredUsers.map((user) => (
                 <div
-                  key={user.id}
+                  key={user.email}
                   className="border rounded-lg p-4 hover:shadow-md transition-shadow"
                 >
-                  {editingUser?.id === user.id ? (
+                  {editingUser?.email === user.email ? (
                     // Edit mode
                     <div className="space-y-4">
                       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -593,7 +593,7 @@ const UserManagement = () => {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => handleToggleStatus(user.id)}
+                          onClick={() => handleToggleStatus(user.email)}
                           className={user.is_active ? 'text-red-600 hover:bg-red-50' : 'text-green-600 hover:bg-green-50'}
                         >
                           {user.is_active ? <UserX className="w-3 h-3" /> : <UserCheck className="w-3 h-3" />}
@@ -601,7 +601,7 @@ const UserManagement = () => {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => handleDeleteUser(user.id)}
+                          onClick={() => handleDeleteUser(user.email)}
                           className="text-red-600 hover:bg-red-50"
                         >
                           <Trash2 className="w-3 h-3" />

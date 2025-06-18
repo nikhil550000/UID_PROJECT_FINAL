@@ -11,23 +11,32 @@ interface ApiResponse<T = unknown> {
 // Authentication interfaces
 interface Employee {
   department: string;
-  can_manage_medicines: boolean;
-  can_manage_stores: boolean;
-  can_approve_orders: boolean;
-  can_manage_supplies: boolean;
+  employee_id: string;
+  join_date: string;
+  salary?: number;
 }
 
 interface Admin {
   admin_level: number;
+  department: string;
+  appointed_at?: string;
 }
 
 interface User {
-  id: number;
-  name: string;
   email: string;
+  name: string;
   role: string;
+  primary_phone?: string;
+  is_active: boolean;
+  last_login?: string;
+  created_at?: string;
+  updated_at?: string;
   employee?: Employee;
   admin?: Admin;
+  phone_numbers?: Array<{
+    phone: string;
+    phone_type: string;
+  }>;
 }
 
 interface LoginCredentials {
@@ -52,14 +61,16 @@ interface Medicine {
   id: number;
   name: string;
   company: string;
+  batch_number?: string;
   date_of_manufacture: string;
   date_of_expiry: string;
-  price: number;
+  dosage_form?: string;
+  strength?: string;
   stock_quantity: number;
   minimum_stock: number;
   last_restocked_quantity?: number;
   restocked_at?: string;
-  restocked_by?: number;
+  restocked_by?: string;
   stock_notes?: string;
   created_at?: string;
   updated_at?: string;
@@ -68,9 +79,11 @@ interface Medicine {
 interface CreateMedicineInput {
   name: string;
   company: string;
+  batch_number?: string;
   date_of_manufacture: string;
   date_of_expiry: string;
-  price: number;
+  dosage_form?: string;
+  strength?: string;
   stock_quantity?: number;
   minimum_stock?: number;
 }
@@ -81,7 +94,12 @@ interface MedicalStore {
   store_name: string;
   city: string;
   state: string;
-  pin_code: string;
+  street_address: string;
+  contact_person?: string;
+  phone?: string;
+  email?: string;
+  license_number?: string;
+  is_active: boolean;
   created_at?: string;
   updated_at?: string;
 }
@@ -90,7 +108,11 @@ interface CreateStoreInput {
   store_name: string;
   city: string;
   state: string;
-  pin_code: string;
+  street_address: string;
+  contact_person?: string;
+  phone?: string;
+  email?: string;
+  license_number?: string;
 }
 
 // Supply interfaces
@@ -98,18 +120,21 @@ interface Supply {
   supply_id: number;
   medicine_id: number;
   store_id: number;
-  user_id: number;
+  user_email: string;
   quantity: number;
   supply_date: string;
   status: string;
+  unit_price: number;
+  total_amount: number;
+  batch_info?: string;
+  expiry_date?: string;
+  notes?: string;
   created_at?: string;
-  updated_at?: string;
   medicine?: Medicine;
   store?: MedicalStore;
   user?: {
-    id: number;
-    name: string;
     email: string;
+    name: string;
     role: string;
   };
 }
@@ -117,9 +142,13 @@ interface Supply {
 interface CreateSupplyInput {
   medicine_id: number;
   store_id: number;
-  user_id: number;
+  user_email: string;
   quantity: number;
   supply_date: string;
+  unit_price: number;
+  batch_info?: string;
+  expiry_date?: string;
+  notes?: string;
   status?: string;
 }
 
@@ -128,26 +157,26 @@ interface Order {
   order_id: number;
   medicine_id: number;
   store_id: number;
-  requester_id: number | null;
-  approver_id?: number | null;
+  requester_email: string | null;
+  approver_email?: string | null;
   quantity: number;
+  requested_price?: number;
+  approved_price?: number;
   status: 'pending' | 'approved' | 'rejected' | 'delivered';
+  priority?: string;
   notes?: string | null;
   order_date: string;
   approved_at?: string | null;
   delivered_at?: string | null;
   created_at?: string;
-  updated_at?: string;
   medicine?: Medicine;
   store?: MedicalStore;
   requester?: {
-    id: number;
     name: string;
     email: string;
     role: string;
   };
   approver?: {
-    id: number;
     name: string;
     email: string;
     role: string;
@@ -158,30 +187,24 @@ interface CreateOrderInput {
   medicine_id: number;
   store_id: number;
   quantity: number;
+  requested_price?: number;
+  priority?: string;
   notes?: string;
 }
 
 interface ProcessOrderInput {
-  approver_id: number;
+  approver_email: string;
+  approved_price?: number;
   notes?: string;
 }
 
-// User interfaces
-interface User {
-  id: number;
-  name: string;
-  email: string;
-  role: string;
-  is_active: boolean;
-  created_at?: string;
-  updated_at?: string;
-}
-
+// User management interfaces
 interface CreateUserInput {
   name: string;
   email: string;
   password: string;
   role?: string;
+  primary_phone?: string;
 }
 
 interface UpdateUserInput {
@@ -189,6 +212,7 @@ interface UpdateUserInput {
   email?: string;
   password?: string;
   role?: string;
+  primary_phone?: string;
   is_active?: boolean;
 }
 
@@ -403,7 +427,7 @@ export const orderApi = {
 export const userApi = {
   getAll: () => apiRequest<User[]>('/users'),
   
-  getById: (id: number) => apiRequest<User>(`/users/${id}`),
+  getByEmail: (email: string) => apiRequest<User>(`/users/${email}`),
   
   create: (data: CreateUserInput) =>
     apiRequest<User>('/users', {
@@ -411,19 +435,19 @@ export const userApi = {
       body: JSON.stringify(data),
     }),
   
-  update: (id: number, data: UpdateUserInput) =>
-    apiRequest<User>(`/users/${id}`, {
+  update: (email: string, data: UpdateUserInput) =>
+    apiRequest<User>(`/users/${email}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
   
-  delete: (id: number) =>
-    apiRequest(`/users/${id}`, {
+  delete: (email: string) =>
+    apiRequest(`/users/${email}`, {
       method: 'DELETE',
     }),
   
-  toggleStatus: (id: number) =>
-    apiRequest<User>(`/users/${id}/toggle-status`, {
+  toggleStatus: (email: string) =>
+    apiRequest<User>(`/users/${email}/toggle-status`, {
       method: 'PATCH',
     }),
 };
@@ -486,6 +510,7 @@ export type {
   Admin,
   CreateUserInput,
   UpdateUserInput,
+  DashboardStats,
   ApiResponse,
   LoginCredentials,
   RegisterData,

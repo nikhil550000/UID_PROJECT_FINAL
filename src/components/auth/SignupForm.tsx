@@ -20,7 +20,7 @@ const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin, onBackToLandin
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'EMPLOYEE' as 'ADMIN' | 'EMPLOYEE'
+    role: 'employee' as 'admin' | 'employee'
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -132,18 +132,18 @@ const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin, onBackToLandin
               <Label className="text-sm font-medium text-gray-700">Role</Label>
               <RadioGroup
                 value={formData.role}
-                onValueChange={(value) => setFormData({ ...formData, role: value as 'ADMIN' | 'EMPLOYEE' })}
+                onValueChange={(value) => setFormData({ ...formData, role: value as 'admin' | 'employee' })}
                 className="flex space-x-6"
               >
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="EMPLOYEE" id="employee" />
+                  <RadioGroupItem value="employee" id="employee" />
                   <Label htmlFor="employee" className="flex items-center space-x-2 cursor-pointer">
                     <User className="h-4 w-4 text-green-600" />
                     <span>Employee</span>
                   </Label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="ADMIN" id="admin" />
+                  <RadioGroupItem value="admin" id="admin" />
                   <Label htmlFor="admin" className="flex items-center space-x-2 cursor-pointer">
                     <Lock className="h-4 w-4 text-purple-600" />
                     <span>Admin</span>

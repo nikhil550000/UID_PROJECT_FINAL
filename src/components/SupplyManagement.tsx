@@ -13,11 +13,17 @@ const SupplyManagement = () => {
   const [supplies, setSupplies] = useState<Supply[]>([]);
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [stores, setStores] = useState<MedicalStore[]>([]);
-  const [newSupply, setNewSupply] = useState({
-    medicine_id: '',
-    store_id: '',
+  const [newSupply, setNewSupply] = useState<CreateSupplyInput>({
+    medicine_id: 0,
+    store_id: 0,
+    user_email: '',
     quantity: 0,
-    supply_date: ''
+    supply_date: '',
+    unit_price: 0,
+    batch_info: '',
+    expiry_date: '',
+    notes: '',
+    status: 'pending'
   });
   const [editingSupply, setEditingSupply] = useState<Supply | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -98,7 +104,7 @@ const SupplyManagement = () => {
     loadStores();
   }, [loadSupplies, loadMedicines, loadStores]);
   const handleCreateSupply = async () => {
-    if (!newSupply.medicine_id || !newSupply.store_id || !newSupply.quantity || !newSupply.supply_date) {
+    if (!newSupply.medicine_id || !newSupply.store_id || !newSupply.quantity || !newSupply.supply_date || !newSupply.user_email || !newSupply.unit_price) {
       toast({ title: "Please fill all required fields", variant: "destructive" });
       return;
     }
@@ -106,20 +112,32 @@ const SupplyManagement = () => {
     try {
       setIsLoading(true);
       const supplyData: CreateSupplyInput = {
-        medicine_id: parseInt(newSupply.medicine_id),
-        store_id: parseInt(newSupply.store_id),
+        medicine_id: Number(newSupply.medicine_id),
+        store_id: Number(newSupply.store_id),
+        user_email: newSupply.user_email,
         quantity: newSupply.quantity,
-        supply_date: newSupply.supply_date
+        supply_date: newSupply.supply_date,
+        unit_price: newSupply.unit_price,
+        batch_info: newSupply.batch_info,
+        expiry_date: newSupply.expiry_date,
+        notes: newSupply.notes,
+        status: newSupply.status
       };
 
       const response = await supplyApi.create(supplyData);
       if (response.success && response.data) {
         setSupplies([response.data, ...supplies]);
         setNewSupply({
-          medicine_id: '',
-          store_id: '',
+          medicine_id: 0,
+          store_id: 0,
+          user_email: '',
           quantity: 0,
-          supply_date: ''
+          supply_date: '',
+          unit_price: 0,
+          batch_info: '',
+          expiry_date: '',
+          notes: '',
+          status: 'pending'
         });
         toast({ title: "Supply record created successfully!" });
       } else {
@@ -239,7 +257,8 @@ const SupplyManagement = () => {
           <CardDescription>Log medicine supply to medical stores</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">            <Select value={newSupply.medicine_id} onValueChange={(value) => setNewSupply({ ...newSupply, medicine_id: value })}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <Select value={newSupply.medicine_id.toString()} onValueChange={(value) => setNewSupply({ ...newSupply, medicine_id: parseInt(value) })}>
               <SelectTrigger>
                 <SelectValue placeholder="Select medicine" />
               </SelectTrigger>
@@ -252,7 +271,7 @@ const SupplyManagement = () => {
               </SelectContent>
             </Select>
 
-            <Select value={newSupply.store_id} onValueChange={(value) => setNewSupply({ ...newSupply, store_id: value })}>
+            <Select value={newSupply.store_id.toString()} onValueChange={(value) => setNewSupply({ ...newSupply, store_id: parseInt(value) })}>
               <SelectTrigger>
                 <SelectValue placeholder="Select store" />
               </SelectTrigger>
@@ -264,7 +283,9 @@ const SupplyManagement = () => {
                 ))}
               </SelectContent>
             </Select>
+          </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <Input
               type="number"
               placeholder="Quantity"
@@ -273,19 +294,70 @@ const SupplyManagement = () => {
             />
 
             <Input
+              type="number"
+              step="0.01"
+              placeholder="Unit Price"
+              value={newSupply.unit_price || ''}
+              onChange={(e) => setNewSupply({ ...newSupply, unit_price: parseFloat(e.target.value) || 0 })}
+            />
+
+            <Input
+              type="email"
+              placeholder="User Email"
+              value={newSupply.user_email}
+              onChange={(e) => setNewSupply({ ...newSupply, user_email: e.target.value })}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <Input
               type="date"
               placeholder="Supply date"
               value={newSupply.supply_date}
               onChange={(e) => setNewSupply({ ...newSupply, supply_date: e.target.value })}
             />
 
-            <Button 
-              onClick={handleCreateSupply}
-              className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600"
-            >
-              Record Supply
-            </Button>
+            <Input
+              type="date"
+              placeholder="Expiry date (optional)"
+              value={newSupply.expiry_date || ''}
+              onChange={(e) => setNewSupply({ ...newSupply, expiry_date: e.target.value })}
+            />
           </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <Input
+              placeholder="Batch Info (optional)"
+              value={newSupply.batch_info || ''}
+              onChange={(e) => setNewSupply({ ...newSupply, batch_info: e.target.value })}
+            />
+
+            <Select value={newSupply.status || 'pending'} onValueChange={(value) => setNewSupply({ ...newSupply, status: value })}>
+              <SelectTrigger>
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
+                <SelectItem value="cancelled">Cancelled</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="mb-4">
+            <Input
+              placeholder="Notes (optional)"
+              value={newSupply.notes || ''}
+              onChange={(e) => setNewSupply({ ...newSupply, notes: e.target.value })}
+            />
+          </div>
+
+          <Button 
+            onClick={handleCreateSupply}
+            className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600"
+          >
+            Record Supply
+          </Button>
         </CardContent>
       </Card>
 
@@ -458,7 +530,7 @@ const SupplyManagement = () => {
                   <div key={store.store_id} className="p-3 bg-blue-50 rounded-lg">
                     <h4 className="font-semibold text-blue-900">{store.store_name}</h4>
                     <p className="text-sm text-blue-700">
-                      {storeSupplies.length} supply records • {store.location}
+                      {storeSupplies.length} supply records • {store.city}, {store.state}
                     </p>
                     <div className="mt-2 flex flex-wrap gap-1">
                       {storeSupplies.map(supply => (

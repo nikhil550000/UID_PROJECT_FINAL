@@ -19,14 +19,36 @@ export const analyticsController = {
       // Get total inventory value
       const medicines = await prisma.medicine.findMany({
         select: {
-          price: true,
+          name: true,
+          company: true,
           stock_quantity: true
         }
       });
 
-      const totalInventoryValue = medicines.reduce((sum, medicine) => {
-        return sum + (Number(medicine.price) * medicine.stock_quantity);
-      }, 0);
+      let totalInventoryValue = 0;
+      for (const medicine of medicines) {
+        // Get current pricing for each medicine
+        const pricing = await prisma.medicinePricing.findFirst({
+          where: {
+            medicine_name: medicine.name,
+            company: medicine.company,
+            effective_date: {
+              lte: new Date()
+            },
+            OR: [
+              { expiry_date: null },
+              { expiry_date: { gte: new Date() } }
+            ]
+          },
+          orderBy: {
+            effective_date: 'desc'
+          }
+        });
+        
+        if (pricing) {
+          totalInventoryValue += Number(pricing.current_price) * medicine.stock_quantity;
+        }
+      }
 
       // Get low stock count
       const lowStockResult = await prisma.$queryRaw<Array<{count: bigint}>>`
@@ -68,7 +90,7 @@ export const analyticsController = {
           EXTRACT(MONTH FROM order_date)::integer as month,
           EXTRACT(YEAR FROM order_date)::integer as year,
           COUNT(*) as order_count,
-          COALESCE(SUM(quantity * (SELECT price FROM medicines WHERE id = orders.medicine_id)), 0) as total_order_value
+          COALESCE(SUM(quantity * COALESCE(approved_price, requested_price, 0)), 0) as total_order_value
         FROM orders 
         WHERE order_date >= ${sixMonthsAgo}
         GROUP BY EXTRACT(YEAR FROM order_date), EXTRACT(MONTH FROM order_date)

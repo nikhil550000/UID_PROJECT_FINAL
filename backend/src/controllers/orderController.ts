@@ -15,7 +15,7 @@ const createOrderSchema = z.object({
 
 // Schema for approving/rejecting an order
 const processOrderSchema = z.object({
-  approver_id: z.number().int().positive(),
+  approver_email: z.string().email(),
   notes: z.string().optional(),
 });
 
@@ -29,7 +29,6 @@ export const orderController = {
           store: true,
           requester: {
             select: {
-              id: true,
               name: true,
               email: true,
               role: true
@@ -37,7 +36,6 @@ export const orderController = {
           },
           approver: {
             select: {
-              id: true,
               name: true,
               email: true,
               role: true
@@ -73,7 +71,6 @@ export const orderController = {
           store: true,
           requester: {
             select: {
-              id: true,
               name: true,
               email: true,
               role: true
@@ -81,7 +78,6 @@ export const orderController = {
           },
           approver: {
             select: {
-              id: true,
               name: true,
               email: true,
               role: true
@@ -117,7 +113,15 @@ export const orderController = {
   createOrder: async (req: Request, res: Response) => {
     try {
       const { medicine_id, store_id, quantity, notes } = createOrderSchema.parse(req.body);
-      const requester_id = req.user?.id; // Assuming user info is attached to request by auth middleware
+      const requester_email = req.user?.email; // Now using email as identifier
+
+      if (!requester_email) {
+        return res.status(401).json({
+          success: false,
+          error: 'Authentication required',
+          message: 'User must be authenticated to create orders'
+        });
+      }
 
       // Check if medicine exists and has enough stock
       const medicine = await prisma.medicine.findUnique({
@@ -137,7 +141,7 @@ export const orderController = {
         data: {
           medicine_id,
           store_id,
-          requester_id,
+          requester_email,
           quantity,
           notes,
           status: 'pending'
@@ -181,7 +185,6 @@ export const orderController = {
           store: true,
           requester: {
             select: {
-              id: true,
               name: true,
               email: true
             }
@@ -208,11 +211,11 @@ export const orderController = {
   approveOrder: async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
-      const { approver_id, notes } = processOrderSchema.parse(req.body);
+      const { approver_email, notes } = processOrderSchema.parse(req.body);
 
       // Check user permissions (admin or employee with order approval permission)
       const user = await prisma.user.findUnique({
-        where: { id: approver_id },
+        where: { email: approver_email },
         include: {
           employee: true,
           admin: true
@@ -223,12 +226,26 @@ export const orderController = {
         return res.status(404).json({
           success: false,
           error: 'User not found',
-          message: `User with ID ${approver_id} not found`
+          message: `User with email ${approver_email} not found`
         });
       }
 
-      const canApprove = user.role === 'admin' || 
-        (user.employee && user.employee.can_approve_orders);
+      // Check permissions using the new SystemPermission table
+      let canApprove = false;
+      
+      if (user.role === 'admin') {
+        canApprove = true;
+      } else if (user.employee) {
+        // Check if user has approve_orders permission for their department
+        const permission = await prisma.systemPermission.findFirst({
+          where: {
+            role: user.role,
+            department: user.employee.department,
+            permission_type: 'approve_orders'
+          }
+        });
+        canApprove = permission?.is_granted || false;
+      }
 
       if (!canApprove) {
         return res.status(403).json({
@@ -275,7 +292,7 @@ export const orderController = {
         const updatedOrder = await tx.order.update({
           where: { order_id: Number(id) },
           data: {
-            approver_id,
+            approver_email,
             status: 'approved',
             notes: notes || order.notes,
             approved_at: new Date(),
@@ -328,11 +345,11 @@ export const orderController = {
   rejectOrder: async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
-      const { approver_id, notes } = processOrderSchema.parse(req.body);
+      const { approver_email, notes } = processOrderSchema.parse(req.body);
 
       // Check user permissions (admin or employee with order approval permission)
       const user = await prisma.user.findUnique({
-        where: { id: approver_id },
+        where: { email: approver_email },
         include: {
           employee: true,
           admin: true
@@ -343,12 +360,25 @@ export const orderController = {
         return res.status(404).json({
           success: false,
           error: 'User not found',
-          message: `User with ID ${approver_id} not found`
+          message: `User with email ${approver_email} not found`
         });
       }
 
-      const canApprove = user.role === 'admin' || 
-        (user.employee && user.employee.can_approve_orders);
+      // Check if user can approve orders
+      let canApprove = false;
+      if (user.role === 'admin') {
+        canApprove = true;
+      } else if (user.employee) {
+        // Check if user has approve_orders permission for their department
+        const permission = await prisma.systemPermission.findFirst({
+          where: {
+            role: user.role,
+            department: user.employee.department,
+            permission_type: 'approve_orders'
+          }
+        });
+        canApprove = permission?.is_granted || false;
+      }
 
       if (!canApprove) {
         return res.status(403).json({
@@ -383,7 +413,7 @@ export const orderController = {
       const updatedOrder = await prisma.order.update({
         where: { order_id: Number(id) },
         data: {
-          approver_id,
+          approver_email,
           status: 'rejected',
           notes: notes || 'Order rejected',
           approved_at: new Date()

@@ -1,18 +1,33 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Database, Plus, Calendar, Pill, Building2, Loader2, TrendingUp, AlertTriangle } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
-import { medicineApi, storeApi, supplyApi, Medicine, MedicalStore, Supply } from '../services/api';
+import { analyticsApi, medicineApi, storeApi, supplyApi, Medicine, MedicalStore, Supply } from '../services/api';
 
 interface DashboardStats {
-  totalMedicines: number;
-  totalStores: number;
-  totalSupplies: number;
-  expiringMedicines: number;
-  totalValue: number;
-  recentSupplies: number;
+  counts: {
+    medicines: number;
+    stores: number;
+    supplies: number;
+    orders: number;
+    pendingOrders: number;
+    expiringMedicines: number;
+  };
+  values: {
+    totalInventoryValue: number;
+    currency: string;
+  };
+  trends: {
+    monthly: {
+      month: string;
+      year: string;
+      order_count: string;
+      supply_count: string;
+      total_order_value: string;
+      total_supply_value: string;
+    }[];
+  };
 }
 
 interface RecentActivity {
@@ -34,18 +49,33 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [stores, setStores] = useState<MedicalStore[]>([]);
   const [supplies, setSupplies] = useState<Supply[]>([]);
+  const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
   const { toast } = useToast();
 
-  const [stats, setStats] = useState<DashboardStats>({
-    totalMedicines: 0,
-    totalStores: 0,
-    totalSupplies: 0,
-    expiringMedicines: 0,
-    totalValue: 0,
-    recentSupplies: 0
-  });
-
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
+
+  // Load analytics data from API
+  const loadAnalytics = useCallback(async () => {
+    try {
+      const response = await analyticsApi.getDashboardStats();
+      if (response.success && response.data) {
+        setDashboardStats(response.data);
+      } else {
+        toast({ 
+          title: "Error loading analytics", 
+          description: response.error || "Failed to load dashboard statistics",
+          variant: "destructive" 
+        });
+      }
+    } catch (error) {
+      console.error('Error loading analytics:', error);
+      toast({ 
+        title: "Error loading analytics", 
+        description: "Failed to connect to server",
+        variant: "destructive" 
+      });
+    }
+  }, [toast]);
 
   // Load data from APIs
   const loadMedicines = useCallback(async () => {
@@ -121,45 +151,17 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
       await Promise.all([
         loadMedicines(),
         loadStores(),
-        loadSupplies()
+        loadSupplies(),
+        loadAnalytics()
       ]);
       setIsLoading(false);
     };
 
     loadAllData();
-  }, [loadMedicines, loadStores, loadSupplies]);
+  }, [loadMedicines, loadStores, loadSupplies, loadAnalytics]);
 
-  // Calculate dashboard statistics and recent activity
-  const calculateDashboardData = useCallback(() => {
-    // Calculate basic stats
-    const now = new Date();
-    const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    
-    const expiringCount = medicines.filter(medicine => {
-      const expiryDate = new Date(medicine.date_of_expiry);
-      return expiryDate <= thirtyDaysFromNow && expiryDate >= now;
-    }).length;
-
-    const totalValue = supplies.reduce((sum, supply) => {
-      const medicine = medicines.find(m => m.id === supply.medicine_id);
-      return sum + (medicine ? Number(medicine.price) * supply.quantity : 0);
-    }, 0);
-
-    const recentSuppliesCount = supplies.filter(supply => {
-      const supplyDate = new Date(supply.supply_date);
-      return supplyDate >= sevenDaysAgo;
-    }).length;
-
-    setStats({
-      totalMedicines: medicines.length,
-      totalStores: stores.length,
-      totalSupplies: supplies.length,
-      expiringMedicines: expiringCount,
-      totalValue,
-      recentSupplies: recentSuppliesCount
-    });
-
+  // Generate recent activity from real data
+  const calculateRecentActivity = useCallback(() => {
     // Generate recent activity from real data
     const activities: RecentActivity[] = [];
 
@@ -222,9 +224,10 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
 
   useEffect(() => {
     if (medicines.length > 0 || stores.length > 0 || supplies.length > 0) {
-      calculateDashboardData();
+      calculateRecentActivity();
     }
-  }, [medicines, stores, supplies, calculateDashboardData]);
+  }, [medicines, stores, supplies, calculateRecentActivity]);
+
   // Calculate growth percentages for display
   const getGrowthPercentage = (current: number, type: string) => {
     // Simulated growth based on data - in a real app, you'd compare with historical data
@@ -232,15 +235,15 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
       case 'medicines':
         return current > 0 ? '+12%' : '0%';
       case 'stores':
-        return stores.length > 0 ? '+8%' : '0%';
+        return dashboardStats?.counts.stores || 0 > 0 ? '+8%' : '0%';
       case 'supplies':
-        return stats.recentSupplies > 0 ? '+15%' : '0%';
+        return dashboardStats?.counts.supplies || 0 > 0 ? '+15%' : '0%';
       case 'expiring':
-        return stats.expiringMedicines > 5 ? '+3%' : '0%';
+        return dashboardStats?.counts.expiringMedicines || 0 > 5 ? '+3%' : '0%';
       case 'value':
-        return stats.totalValue > 0 ? '+22%' : '0%';
+        return dashboardStats?.values.totalInventoryValue || 0 > 0 ? '+22%' : '0%';
       case 'recent':
-        return stats.recentSupplies > 0 ? '+18%' : '0%';
+        return dashboardStats?.counts.supplies || 0 > 0 ? '+18%' : '0%';
       default:
         return '0%';
     }
@@ -267,9 +270,9 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             <Pill className="h-4 w-4" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalMedicines}</div>
+            <div className="text-2xl font-bold">{dashboardStats?.counts.medicines || 0}</div>
             <p className="text-xs text-blue-100">
-              {getGrowthPercentage(stats.totalMedicines, 'medicines')} from last month
+              {getGrowthPercentage(dashboardStats?.counts.medicines || 0, 'medicines')} from last month
             </p>
           </CardContent>
         </Card>
@@ -280,9 +283,9 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             <Building2 className="h-4 w-4" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalStores}</div>
+            <div className="text-2xl font-bold">{dashboardStats?.counts.stores || 0}</div>
             <p className="text-xs text-green-100">
-              {getGrowthPercentage(stats.totalStores, 'stores')} from last month
+              {getGrowthPercentage(dashboardStats?.counts.stores || 0, 'stores')} from last month
             </p>
           </CardContent>
         </Card>
@@ -293,9 +296,9 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             <Database className="h-4 w-4" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalSupplies}</div>
+            <div className="text-2xl font-bold">{dashboardStats?.counts.supplies || 0}</div>
             <p className="text-xs text-purple-100">
-              {getGrowthPercentage(stats.totalSupplies, 'supplies')} from last month
+              {getGrowthPercentage(dashboardStats?.counts.supplies || 0, 'supplies')} from last month
             </p>
           </CardContent>
         </Card>
@@ -306,7 +309,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             <AlertTriangle className="h-4 w-4" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.expiringMedicines}</div>
+            <div className="text-2xl font-bold">{dashboardStats?.counts.expiringMedicines || 0}</div>
             <p className="text-xs text-red-100">
               Medicines within 30 days
             </p>
@@ -319,9 +322,9 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             <TrendingUp className="h-4 w-4" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${stats.totalValue.toLocaleString()}</div>
+            <div className="text-2xl font-bold">${(dashboardStats?.values.totalInventoryValue || 0).toLocaleString()}</div>
             <p className="text-xs text-indigo-100">
-              {getGrowthPercentage(stats.totalValue, 'value')} from last month
+              {getGrowthPercentage(dashboardStats?.values.totalInventoryValue || 0, 'value')} from last month
             </p>
           </CardContent>
         </Card>
@@ -332,9 +335,9 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             <Calendar className="h-4 w-4" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.recentSupplies}</div>
+            <div className="text-2xl font-bold">{dashboardStats?.counts.supplies || 0}</div>
             <p className="text-xs text-orange-100">
-              Supplies this week
+              Total supplies
             </p>
           </CardContent>
         </Card>
@@ -474,7 +477,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                   <span className="text-sm font-medium text-blue-900">Medicine Inventory</span>
                 </div>
                 <div className="text-right">
-                  <p className="text-lg font-bold text-blue-800">{stats.totalMedicines}</p>
+                  <p className="text-lg font-bold text-blue-800">{dashboardStats?.counts.medicines || 0}</p>
                   <p className="text-xs text-blue-600">Active products</p>
                 </div>
               </div>
@@ -485,7 +488,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                   <span className="text-sm font-medium text-green-900">Store Network</span>
                 </div>
                 <div className="text-right">
-                  <p className="text-lg font-bold text-green-800">{stats.totalStores}</p>
+                  <p className="text-lg font-bold text-green-800">{dashboardStats?.counts.stores || 0}</p>
                   <p className="text-xs text-green-600">Registered stores</p>
                 </div>
               </div>
@@ -496,19 +499,19 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                   <span className="text-sm font-medium text-purple-900">Supply Chain</span>
                 </div>
                 <div className="text-right">
-                  <p className="text-lg font-bold text-purple-800">{stats.totalSupplies}</p>
+                  <p className="text-lg font-bold text-purple-800">{dashboardStats?.counts.supplies || 0}</p>
                   <p className="text-xs text-purple-600">Total transactions</p>
                 </div>
               </div>
 
-              {stats.expiringMedicines > 0 && (
+              {(dashboardStats?.counts.expiringMedicines || 0) > 0 && (
                 <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg border border-red-200">
                   <div className="flex items-center gap-3">
                     <AlertTriangle className="w-4 h-4 text-red-500" />
                     <span className="text-sm font-medium text-red-900">Attention Required</span>
                   </div>
                   <div className="text-right">
-                    <p className="text-lg font-bold text-red-800">{stats.expiringMedicines}</p>
+                    <p className="text-lg font-bold text-red-800">{dashboardStats?.counts.expiringMedicines || 0}</p>
                     <p className="text-xs text-red-600">Expiring soon</p>
                   </div>
                 </div>
